@@ -1,0 +1,4 @@
+.attach*
+target/
+slsk-jvm.iml
+.idea/
