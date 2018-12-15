@@ -8,7 +8,6 @@ import io.vertx.junit5.Timeout
 import io.vertx.junit5.VertxExtension
 import io.vertx.junit5.VertxTestContext
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.util.concurrent.TimeUnit.SECONDS
@@ -56,20 +55,13 @@ class LoginTest {
             val socketHandler: (Buffer) -> Unit = { buffer ->
                 println("Received message: $buffer")
                 val message = when {
-                    buffer.toString().contains("username") -> Buffer.buffer()
-                            .appendIntLE(15)
-                            .appendInt(1)
-                            .appendByte(1)
-                            .appendString("Welcome to soulseek!")
-                    else -> Buffer.buffer()
-                            .appendIntLE(15)
-                            .appendInt(1)
-                            .appendByte(0)
-                            .appendString("Login failed!")
+                    buffer.toString().contains("username") -> Protocol.FromServer.Login(true, "Welcome to soulseek!")
+                    else -> Protocol.FromServer.Login(false, "Login failed!")
                 }
+                val buffer = message.toBuffer()
                 socket.write(Buffer.buffer()
-                        .appendIntLE(message.length())
-                        .appendBuffer(message))
+                        .appendIntLE(buffer.length())
+                        .appendBuffer(buffer))
             }
 
             socket.handler(socketHandler)

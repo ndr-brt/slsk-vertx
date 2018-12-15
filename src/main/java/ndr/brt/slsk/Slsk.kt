@@ -16,7 +16,7 @@ class Slsk(private val serverHost: String, private val serverPort: Int): Abstrac
                     buffer ->
                         log.info("Received message from server: {}", buffer)
                         log.info("Received message from server: {}", buffer.bytes)
-                        val status = buffer.getByte(12)
+                        val status = buffer.getByte(8)
                         log.info("Status {}", status)
                         vertx.eventBus().publish("login", JsonObject.mapFrom(Login(status.toInt() == 1, buffer.toString())))
                 }
