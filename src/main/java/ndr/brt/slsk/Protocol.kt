@@ -16,4 +16,10 @@ class Protocol {
 
 interface Message {
     fun toBuffer(): Buffer
+    fun toChannel(): Buffer {
+        val buffer = toBuffer()
+        return Buffer.buffer()
+                .appendIntLE(buffer.length())
+                .appendBuffer(buffer)
+    }
 }

@@ -31,10 +31,7 @@ class MockServer(private val port: Int) : AbstractVerticle() {
                 buffer.toString().contains("username") -> Protocol.FromServer.Login(true, "Welcome to soulseek!")
                 else -> Protocol.FromServer.Login(false, "Login failed!")
             }
-            val messageBuffer = message.toBuffer()
-            socket.write(Buffer.buffer()
-                    .appendIntLE(messageBuffer.length())
-                    .appendBuffer(messageBuffer))
+            socket.write(message.toChannel())
         }
 
     }
