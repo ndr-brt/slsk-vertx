@@ -8,8 +8,9 @@ class Protocol {
     class FromServer {
         class Login(private val successful: Boolean, private val message: String): Message {
             override fun toBuffer() = Buffer.buffer()
-                    .appendInt(1)
+                    .appendIntLE(1)
                     .appendByte(if (successful) 1 else 0)
+                    .appendIntLE(message.length)
                     .appendString(message)
         }
     }
@@ -17,12 +18,15 @@ class Protocol {
     class ToServer {
         class Login(private val username: String, private val password: String): Message {
             override fun toBuffer(): Buffer = Buffer.buffer()
-                    .appendInt(1)
+                    .appendIntLE(1)
+                    .appendIntLE(username.length)
                     .appendString(username)
+                    .appendIntLE(password.length)
                     .appendString(password)
-                    .appendInt(160)
+                    .appendIntLE(160)
+                    .appendIntLE(username.plus(password).let(md5).let(hex).length)
                     .appendString(username.plus(password).let(md5).let(hex))
-                    .appendInt(17)
+                    .appendIntLE(17)
         }
     }
 }

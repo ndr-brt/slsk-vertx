@@ -18,6 +18,7 @@ class Slsk(private val serverHost: String, private val serverPort: Int): Abstrac
     val log = LoggerFactory.getLogger(javaClass)
 
     override fun start(startFuture: Future<Void>) {
+        log.info("Starting slsk verticle")
         vertx.createNetClient().connect(serverPort, serverHost) {
             if (it.succeeded()) {
                 log.info("Connected with server {}:{}", serverHost, serverPort)
