@@ -1,28 +1,42 @@
 package ndr.brt.slsk
 
-import io.vertx.core.eventbus.EventBus
+import io.vertx.core.AbstractVerticle
+import io.vertx.core.Future
 import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetSocket
 import org.slf4j.LoggerFactory
 
-class ServerListener(private val socket: NetSocket, private val eventBus: EventBus) {
+class ServerListener(private val serverHost: String, private val serverPort: Int) : AbstractVerticle() {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    init {
-        socket.handler  { buffer ->
+    override fun start(startFuture: Future<Void>) {
+        log.info("Starting slsk verticle")
+        vertx.createNetClient().connect(serverPort, serverHost) {
+            if (it.succeeded()) {
+                log.info("Connected with server {}:{}", serverHost, serverPort)
+                initialize(it.result())
+                startFuture.complete()
+            } else {
+                log.error("Connection with server failed", it.cause())
+                startFuture.fail(it.cause())
+            }
+        }
+    }
+
+    private fun initialize(socket: NetSocket) {
+        socket.handler { buffer ->
             log.info("Received message from server: {}", buffer)
-            log.info("Received message from server: {}", buffer.bytes)
             val status = buffer.getByte(8)
             log.info("Status {}", status)
-            eventBus.publish("login", JsonObject.mapFrom(Login(status.toInt() == 1, buffer.toString())))
+            vertx.eventBus().publish("LoginResponded", LoginResponded(status.toInt() == 1, buffer.toString()).asJson())
         }
 
-        eventBus.consumer<JsonObject>("do-login") { message ->
-            val username = message.body().getString("username")
-            val password = message.body().getString("password")
-            val login = Protocol.ToServer.Login(username, password)
+        vertx.eventBus().consumer<JsonObject>("LoginRequested") { message ->
+            val event = message.body().mapTo(LoginRequested::class.java)
+            val login = Protocol.ToServer.Login(event.username, event.password)
             log.info("Send login message to server {}", socket.localAddress())
             socket.write(login.toChannel())
         }
     }
+
 }

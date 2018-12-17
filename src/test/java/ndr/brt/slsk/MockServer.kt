@@ -19,6 +19,8 @@ class MockServer(private val port: Int) : AbstractVerticle() {
                 .listen(port, future::handle)
 
         future.setHandler {
+            if (it.failed()) startFuture.fail(it.cause())
+
             log.info("Mock server started on port $port")
             startFuture.complete()
         }

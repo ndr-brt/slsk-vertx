@@ -31,8 +31,8 @@ class LoginTest {
         vertx.deployVerticle(slsk) {
             slsk.login("username", "password")
 
-            vertx.eventBus().consumer<JsonObject>("login") {
-                val login = it.body().mapTo(Login::class.java)
+            vertx.eventBus().consumer<JsonObject>("LoginResponded") {
+                val login = it.body().mapTo(LoginResponded::class.java)
                 assertThat(login.succeed).isTrue()
                 assertThat(login.message).endsWith("Welcome to soulseek!")
                 context.completeNow()
@@ -48,8 +48,8 @@ class LoginTest {
         vertx.deployVerticle(slsk) {
             slsk.login("username", "wrong_password")
 
-            vertx.eventBus().consumer<JsonObject>("login") {
-                val login = it.body().mapTo(Login::class.java)
+            vertx.eventBus().consumer<JsonObject>("LoginResponded") {
+                val login = it.body().mapTo(LoginResponded::class.java)
                 assertThat(login.succeed).isFalse()
                 assertThat(login.message).endsWith("Login failed!")
                 context.completeNow()
