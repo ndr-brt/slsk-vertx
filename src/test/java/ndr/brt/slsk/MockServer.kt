@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory
 
 class MockServer(private val port: Int) : AbstractVerticle() {
 
-    val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(javaClass)
 
     override fun start(startFuture: Future<Void>) {
         val future = Future.future<NetServer>()
@@ -31,18 +31,21 @@ class MockServer(private val port: Int) : AbstractVerticle() {
     }
 
     private class BufferHandler(private val socket: NetSocket): Handler<Buffer> {
+
+        private val log = LoggerFactory.getLogger(javaClass)
+
         override fun handle(buffer: Buffer) {
 
-            val usernameLength = buffer.getIntLE(8)
-            val username = buffer.getString(12, 12 + usernameLength)
-            val passwordLength = buffer.getIntLE(12 + usernameLength)
-            val password = buffer.getString(12 + usernameLength + 4, 12 + usernameLength + 4 + passwordLength)
-
-            val message = when {
-                password.contains("wrong") -> Protocol.FromServer.Login(false, "Login failed!")
-                else -> Protocol.FromServer.Login(true, "Welcome to soulseek!")
+            val message = parseToServerMessage(buffer)
+            when (message) {
+                is Protocol.ToServer.Login -> {
+                    socket.write(when {
+                        message.password.contains("wrong") -> Protocol.FromServer.Login(false, "Login failed!")
+                        else -> Protocol.FromServer.Login(true, "Welcome to soulseek!")
+                    }.toChannel())
+                }
+                else -> log.info("Unknown message type ${message.type()}")
             }
-            socket.write(message.toChannel())
         }
 
     }
