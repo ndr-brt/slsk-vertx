@@ -57,4 +57,14 @@ class LoginTest {
         }
     }
 
+    @Test
+    @Timeout(value = 5, timeUnit = SECONDS)
+    internal fun when_server_is_not_reachable_deploy_verticle_will_fail(vertx: Vertx, context: VertxTestContext) {
+        val slsk = Slsk("localhost", 4322)
+        vertx.deployVerticle(slsk) {
+            assertThat(it.failed()).isTrue()
+            context.completeNow()
+        }
+    }
+
 }
