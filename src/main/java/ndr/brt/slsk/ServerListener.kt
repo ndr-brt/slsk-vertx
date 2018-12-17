@@ -9,8 +9,7 @@ class ServerListener(private val socket: NetSocket, private val eventBus: EventB
     private val log = LoggerFactory.getLogger(javaClass)
 
     init {
-        socket.handler  {
-            buffer ->
+        socket.handler  { buffer ->
             log.info("Received message from server: {}", buffer)
             log.info("Received message from server: {}", buffer.bytes)
             val status = buffer.getByte(8)
@@ -18,8 +17,12 @@ class ServerListener(private val socket: NetSocket, private val eventBus: EventB
             eventBus.publish("login", JsonObject.mapFrom(Login(status.toInt() == 1, buffer.toString())))
         }
 
-        eventBus.consumer<JsonObject>("do-login") {
-            message -> socket.write(message.body().getString("username"))
+        eventBus.consumer<JsonObject>("do-login") { message ->
+            val username = message.body().getString("username")
+            val password = message.body().getString("password")
+            val login = Protocol.ToServer.Login(username, password)
+            log.info("Send login message to server {}", socket.localAddress())
+            socket.write(login.toChannel())
         }
     }
 }
