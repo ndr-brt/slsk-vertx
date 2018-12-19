@@ -13,7 +13,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit.SECONDS
 
 @ExtendWith(VertxExtension::class)
-class LoginTest {
+class SlskTest {
 
     @BeforeEach
     internal fun setUp(vertx: Vertx) {
@@ -22,6 +22,16 @@ class LoginTest {
             future.complete(null)
         }
         future.get()
+    }
+
+    @Test
+    @Timeout(value = 5, timeUnit = SECONDS)
+    internal fun when_server_is_not_reachable_deploy_verticle_will_fail(vertx: Vertx, context: VertxTestContext) {
+        val slsk = Slsk("localhost", 4322)
+        vertx.deployVerticle(slsk) {
+            assertThat(it.failed()).isTrue()
+            context.completeNow()
+        }
     }
 
     @Test
@@ -59,11 +69,16 @@ class LoginTest {
 
     @Test
     @Timeout(value = 5, timeUnit = SECONDS)
-    internal fun when_server_is_not_reachable_deploy_verticle_will_fail(vertx: Vertx, context: VertxTestContext) {
-        val slsk = Slsk("localhost", 4322)
+    internal fun do_search(vertx: Vertx, context: VertxTestContext) {
+        val slsk = Slsk("localhost", 4321)
         vertx.deployVerticle(slsk) {
-            assertThat(it.failed()).isTrue()
-            context.completeNow()
+            slsk.search("query", 2000)
+
+            vertx.eventBus().consumer<JsonObject>("SearchResponded") {
+                val search = it.body().mapTo(SearchResponded::class.java)
+                assertThat(search.files).isEmpty()
+                context.completeNow()
+            }
         }
     }
 

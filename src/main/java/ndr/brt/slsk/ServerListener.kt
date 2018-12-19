@@ -34,8 +34,15 @@ class ServerListener(private val serverHost: String, private val serverPort: Int
         vertx.eventBus().consumer<JsonObject>("LoginRequested") { message ->
             val event = message.body().mapTo(LoginRequested::class.java)
             val login = Protocol.ToServer.Login(event.username, event.password)
-            log.info("Send login message to server {}", socket.localAddress())
+            log.info("Send login message to server")
             socket.write(login.toChannel())
+        }
+
+        vertx.eventBus().consumer<JsonObject>("SearchRequested") { message ->
+            val event = message.body().mapTo(SearchRequested::class.java)
+            val fileSearch = Protocol.ToServer.FileSearch(event.token, event.query)
+            log.info("Send file search message to server")
+            socket.write(fileSearch.toChannel())
         }
     }
 

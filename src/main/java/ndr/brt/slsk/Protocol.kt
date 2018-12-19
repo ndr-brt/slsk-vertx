@@ -18,7 +18,7 @@ class Protocol {
     }
 
     class ToServer {
-        class Login(private val username: String, val password: String): Message {
+        class Login(private val username: String, val password: String) : Message {
 
             override fun type(): Int = 1
 
@@ -32,6 +32,16 @@ class Protocol {
                     .appendIntLE(username.plus(password).let(md5).let(hex).length)
                     .appendString(username.plus(password).let(md5).let(hex))
                     .appendIntLE(17)
+        }
+
+        class FileSearch(private val token: String, private val query: String): Message {
+            override fun toBuffer(): Buffer = Buffer.buffer()
+                    .appendIntLE(type())
+                    .appendIntLE(Integer.parseInt(token, 16)) // TODO: rappresentazione int (o bytes?) di stringa hex
+                    .appendIntLE(query.length)
+                    .appendString(query)
+
+            override fun type(): Int = 26
         }
     }
 }
@@ -54,12 +64,8 @@ val parseToServerMessage: (Buffer) -> Message = {
 }
 
 class UnknownMessage(private val type: Int) : Message {
-    override fun toBuffer(): Buffer {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
+    override fun toBuffer(): Buffer = Buffer.buffer()
     override fun type(): Int = type
-
 }
 
 interface Message {
