@@ -36,16 +36,20 @@ class Slsk(private val serverHost: String, private val serverPort: Int): Abstrac
 
     fun login(username: String, password: String) {
         log.info("Login with username {}", username)
-        vertx.eventBus().publish("LoginRequested", LoginRequested(username, password).asJson())
+        emit(LoginRequested(username, password))
     }
 
     fun search(query: String, timeout: Long) {
         log.info("Search request {} with timeout {}", query, timeout)
         val token = "01a2f123"
-        vertx.eventBus().publish("SearchRequested", SearchRequested(query, token).asJson())
+        emit(SearchRequested(query, token))
         vertx.setTimer(timeout) {
-            vertx.eventBus().publish("SearchResponded", SearchResponded(emptyList()).asJson())
+            emit(SearchResponded(emptyList()))
         }
+    }
+
+    fun emit(event: Event) {
+        vertx.eventBus().publish(event::class.java.simpleName, event.asJson())
     }
 
 }
