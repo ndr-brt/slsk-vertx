@@ -53,4 +53,23 @@ internal class InputMessageHandlerTest {
         handler.handle(partOne)
         handler.handle(partTwo)
     }
+
+    @Test
+    @Timeout(value = 1, timeUnit = TimeUnit.SECONDS)
+    internal fun handle_two_messages_in_one_packet(vertx: Vertx, context: VertxTestContext) {
+        val handler = InputMessageHandler("publish-address", vertx.eventBus())
+        val message = buffer()
+                .appendIntLE(17)
+                .appendIntLE(1)
+                .appendByte(1)
+                .appendIntLE(8)
+                .appendString("12345678")
+
+        vertx.eventBus().consumer<Buffer>("publish-address") {
+            assert(it.body() == message)
+            context.completeNow()
+        }
+
+        handler.handle(Buffer.buffer().appendBuffer(message).appendBuffer(message))
+    }
 }

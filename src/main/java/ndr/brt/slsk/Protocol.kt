@@ -1,6 +1,7 @@
 package ndr.brt.slsk
 
 import bytesToHex
+import hexToBytes
 import io.vertx.core.buffer.Buffer
 import java.security.MessageDigest
 
@@ -38,7 +39,7 @@ class Protocol {
         class FileSearch(private val token: String, private val query: String): Message {
             override fun toBuffer(): Buffer = Buffer.buffer()
                     .appendIntLE(type())
-                    .appendIntLE(Integer.parseInt(token, 16)) // TODO: rappresentazione int (o bytes?) di stringa hex
+                    .appendBytes(token.let(hexToBytes))
                     .appendIntLE(query.length)
                     .appendString(query)
 
