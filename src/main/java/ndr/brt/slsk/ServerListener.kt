@@ -33,8 +33,12 @@ class ServerListener(private val serverHost: String, private val serverPort: Int
             val type = inputMessage.code()
             when (type) {
                 1 -> {
-                    log.info("Recv Login message")
+                    log.info("Recv Login")
                     vertx.eventBus().publish("LoginResponded", LoginResponded(inputMessage.readByte().toInt() == 1, inputMessage.readString()).asJson())
+                }
+                64 -> {
+                    val numberOfRooms = inputMessage.readInt()
+                    log.info("Recv RoomList $numberOfRooms")
                 }
                 else -> {
                     log.warn("Server message code $type unknown")
