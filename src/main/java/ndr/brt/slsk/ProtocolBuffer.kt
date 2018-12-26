@@ -8,7 +8,7 @@ class ProtocolBuffer(private val buffer: Buffer) {
     var pointer = 8
 
     fun size(): Int = buffer.getIntLE(0)
-    fun type(): Int = buffer.getIntLE(4)
+    fun code(): Int = buffer.getIntLE(4)
     fun length(): Int = buffer.length()
 
     fun readString(): String {

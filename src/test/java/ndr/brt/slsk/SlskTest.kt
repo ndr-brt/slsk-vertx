@@ -26,51 +26,40 @@ class SlskTest {
 
     @Test
     @Timeout(value = 5, timeUnit = SECONDS)
-    internal fun when_server_is_not_reachable_deploy_verticle_will_fail(vertx: Vertx, context: VertxTestContext) {
-        val slsk = Slsk("localhost", 4322)
+    internal fun when_server_is_not_reachable_deploy_fails(vertx: Vertx, context: VertxTestContext) {
+        val slsk = Slsk("any", "any", "localhost", 4322)
         vertx.deployVerticle(slsk) {
             assertThat(it.failed()).isTrue()
+            assertThat(it.cause().message).isEqualTo("Connection refused: localhost/127.0.0.1:4322")
             context.completeNow()
         }
     }
 
     @Test
     @Timeout(value = 5, timeUnit = SECONDS)
-    internal fun do_login_emits_login_successful_event(vertx: Vertx, context: VertxTestContext) {
-        val slsk = Slsk("localhost", 4321)
+    internal fun when_credentials_are_not_valid_deploy_fails(vertx: Vertx, context: VertxTestContext) {
+        val slsk = Slsk("username", "wrong_password", "localhost", 4321)
         vertx.deployVerticle(slsk) {
-            slsk.login("username", "password")
-
-            vertx.eventBus().consumer<JsonObject>("LoginResponded") {
-                val login = it.body().mapTo(LoginResponded::class.java)
-                assertThat(login.succeed).isTrue()
-                assertThat(login.message).endsWith("Welcome to soulseek!")
-                context.completeNow()
-            }
-
+            assertThat(it.succeeded()).isFalse()
+            assertThat(it.cause().message).isEqualTo("Login failed!")
+            context.completeNow()
         }
     }
 
     @Test
     @Timeout(value = 5, timeUnit = SECONDS)
-    internal fun when_login_is_not_valid_emit_login_failed_event(vertx: Vertx, context: VertxTestContext) {
-        val slsk = Slsk("localhost", 4321)
+    internal fun do_login(vertx: Vertx, context: VertxTestContext) {
+        val slsk = Slsk("username", "password", "localhost", 4321)
         vertx.deployVerticle(slsk) {
-            slsk.login("username", "wrong_password")
-
-            vertx.eventBus().consumer<JsonObject>("LoginResponded") {
-                val login = it.body().mapTo(LoginResponded::class.java)
-                assertThat(login.succeed).isFalse()
-                assertThat(login.message).endsWith("Login failed!")
-                context.completeNow()
-            }
+            assertThat(it.succeeded()).isTrue()
+            context.completeNow()
         }
     }
 
     @Test
     @Timeout(value = 5, timeUnit = SECONDS)
     internal fun do_search(vertx: Vertx, context: VertxTestContext) {
-        val slsk = Slsk("localhost", 4321)
+        val slsk = Slsk("username", "password", "localhost", 4321)
         vertx.deployVerticle(slsk) {
             slsk.search("query", 2000)
 

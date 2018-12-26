@@ -20,10 +20,12 @@ class ServerSocketHandler(private val eventBus: EventBus): Handler<Buffer> {
             rest = ProtocolBuffer()
         }
 
-        val type = message.type()
-        log.info("Type {}", type)
+        val type = message.code()
         when (type) {
-            1 -> eventBus.publish("LoginResponded", LoginResponded(message.readByte().toInt() == 1, message.readString()).asJson())
+            1 -> {
+                log.info("Recv Login message")
+                eventBus.publish("LoginResponded", LoginResponded(message.readByte().toInt() == 1, message.readString()).asJson())
+            }
             else -> {
                 log.warn("Server message code $type unknown")
                 eventBus.publish("UnknownMessage", "{}")

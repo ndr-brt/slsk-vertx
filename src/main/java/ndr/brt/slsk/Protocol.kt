@@ -56,7 +56,7 @@ val hex: (ByteArray) -> String = { bytes ->
 
 val parseToServerMessage: (Buffer) -> Message = {
     val buffer = ProtocolBuffer(it)
-    val type = buffer.type()
+    val type = buffer.code()
     when (type) {
         1 -> Protocol.ToServer.Login(buffer.readString(), buffer.readString())
         else -> UnknownMessage(type)

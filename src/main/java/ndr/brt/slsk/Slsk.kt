@@ -4,23 +4,20 @@ import io.vertx.core.AbstractVerticle
 import io.vertx.core.Future
 import io.vertx.core.Future.future
 import io.vertx.core.Vertx
+import io.vertx.core.json.JsonObject
 import org.slf4j.LoggerFactory
 
 fun main(args: Array<String>) {
-    val slsk = Slsk("server.slsknet.org", 2242)
+    val slsk = Slsk("ginogino", "ginogino", "server.slsknet.org", 2242)
     val vertx = Vertx.vertx()
     vertx.deployVerticle(slsk) {
         if (it.failed()) throw it.cause()
 
-        slsk.login("ginogino", "ginogino")
-        vertx.setTimer(2000) {
-            slsk.search("leatherface", 2000)
-
-        }
+        slsk.search("leatherface", 2000)
     }
 }
 
-class Slsk(private val serverHost: String, private val serverPort: Int): AbstractVerticle() {
+class Slsk(private val username: String, private val password: String, private val serverHost: String, private val serverPort: Int): AbstractVerticle() {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -33,13 +30,19 @@ class Slsk(private val serverHost: String, private val serverPort: Int): Abstrac
             if (it.failed()) startFuture.fail(it.cause())
 
             log.info("Slsk verticle started")
-            startFuture.complete()
-        }
-    }
+            login(username, password)
 
-    fun login(username: String, password: String) {
-        log.info("Login with username {}", username)
-        emit(LoginRequested(username, password))
+            vertx.eventBus().consumer<JsonObject>("LoginResponded") {
+                val login = it.body().mapTo(LoginResponded::class.java)
+                if (login.succeed) {
+                    log.info("Login succedeed: ${login.message}")
+                    startFuture.complete()
+                } else {
+                    log.info("Login failed: ${login.message}")
+                    startFuture.fail(login.message)
+                }
+            }
+        }
     }
 
     fun search(query: String, timeout: Long) {
@@ -51,7 +54,12 @@ class Slsk(private val serverHost: String, private val serverPort: Int): Abstrac
         }
     }
 
-    fun emit(event: Event) {
+    private fun login(username: String, password: String) {
+        log.info("Login with username {}", username)
+        emit(LoginRequested(username, password))
+    }
+
+    private fun emit(event: Event) {
         vertx.eventBus().publish(event::class.java.simpleName, event.asJson())
     }
 

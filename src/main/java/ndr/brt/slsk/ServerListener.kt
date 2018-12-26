@@ -10,7 +10,7 @@ class ServerListener(private val serverHost: String, private val serverPort: Int
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun start(startFuture: Future<Void>) {
-        log.info("Starting slsk verticle")
+        log.info("Starting Server Listener")
         vertx.createNetClient().connect(serverPort, serverHost) {
             if (it.succeeded()) {
                 log.info("Connected with server {}:{}", serverHost, serverPort)
