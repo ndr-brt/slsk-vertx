@@ -15,7 +15,7 @@ class MockServer(private val port: Int) : AbstractVerticle() {
     override fun start(startFuture: Future<Void>) {
         val future = Future.future<NetServer>()
         vertx.createNetServer()
-                .connectHandler(ConnectionHandler())
+                .connectHandler { socket -> socket.handler(BufferHandler(socket))}
                 .listen(port, future::handle)
 
         future.setHandler {
@@ -23,12 +23,6 @@ class MockServer(private val port: Int) : AbstractVerticle() {
 
             log.info("Mock server started on port $port")
             startFuture.complete()
-        }
-    }
-
-    private class ConnectionHandler: Handler<NetSocket> {
-        override fun handle(socket: NetSocket) {
-            socket.handler(BufferHandler(socket))
         }
     }
 

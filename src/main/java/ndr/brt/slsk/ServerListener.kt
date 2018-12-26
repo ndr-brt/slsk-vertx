@@ -27,6 +27,10 @@ class ServerListener(private val serverHost: String, private val serverPort: Int
     private fun initialize(socket: NetSocket) {
         socket.handler(InputMessageHandler("ServerInputMessage", vertx.eventBus()))
 
+        socket.exceptionHandler { cause ->
+            log.error("Error", cause)
+        }
+
         vertx.eventBus().consumer<Buffer>("ServerInputMessage") { message ->
             val inputMessage = ProtocolBuffer(message.body())
 

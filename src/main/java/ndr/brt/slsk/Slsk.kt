@@ -14,6 +14,10 @@ fun main(args: Array<String>) {
         if (it.failed()) throw it.cause()
 
         slsk.search("leatherface", 2000)
+
+        vertx.setTimer(3000) {
+            slsk.search("downset", 2000)
+        }
     }
 }
 

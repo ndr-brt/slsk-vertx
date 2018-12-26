@@ -1,5 +1,6 @@
 package ndr.brt.slsk
 
+import bytesToHex
 import io.vertx.core.buffer.Buffer
 import java.security.MessageDigest
 
@@ -29,8 +30,8 @@ class Protocol {
                     .appendIntLE(password.length)
                     .appendString(password)
                     .appendIntLE(160)
-                    .appendIntLE(username.plus(password).let(md5).let(hex).length)
-                    .appendString(username.plus(password).let(md5).let(hex))
+                    .appendIntLE(username.plus(password).let(md5).let(bytesToHex).length)
+                    .appendString(username.plus(password).let(md5).let(bytesToHex))
                     .appendIntLE(17)
         }
 
@@ -48,10 +49,6 @@ class Protocol {
 
 val md5: (String) -> ByteArray = { string ->
     MessageDigest.getInstance("MD5").digest(string.toByteArray())
-}
-
-val hex: (ByteArray) -> String = { bytes ->
-    bytes.joinToString { String.format("%02X", it) }
 }
 
 val parseToServerMessage: (Buffer) -> Message = {
