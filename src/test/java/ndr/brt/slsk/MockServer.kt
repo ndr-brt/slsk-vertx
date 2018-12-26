@@ -49,6 +49,5 @@ class MockServer(private val port: Int) : AbstractVerticle() {
                 else -> log.info("Unknown message type ${message.type()}")
             }
         }
-
     }
 }

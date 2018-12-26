@@ -24,12 +24,7 @@ class ServerListener(private val serverHost: String, private val serverPort: Int
     }
 
     private fun initialize(socket: NetSocket) {
-        socket.handler { buffer ->
-            log.info("Received message from server: {}", buffer)
-            val status = buffer.getByte(8)
-            log.info("Status {}", status)
-            vertx.eventBus().publish("LoginResponded", LoginResponded(status.toInt() == 1, buffer.toString()).asJson())
-        }
+        socket.handler(ServerSocketHandler(vertx.eventBus()))
 
         vertx.eventBus().consumer<JsonObject>("LoginRequested") { message ->
             val event = message.body().mapTo(LoginRequested::class.java)

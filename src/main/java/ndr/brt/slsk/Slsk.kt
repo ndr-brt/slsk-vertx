@@ -7,11 +7,16 @@ import io.vertx.core.Vertx
 import org.slf4j.LoggerFactory
 
 fun main(args: Array<String>) {
-    val slsk = Slsk("aaaa.slsknet.org", 2242)
-    Vertx.vertx().deployVerticle(slsk) {
+    val slsk = Slsk("server.slsknet.org", 2242)
+    val vertx = Vertx.vertx()
+    vertx.deployVerticle(slsk) {
         if (it.failed()) throw it.cause()
 
-        slsk.login("aaaaa", "bbbb")
+        slsk.login("ginogino", "ginogino")
+        vertx.setTimer(2000) {
+            slsk.search("leatherface", 2000)
+
+        }
     }
 }
 
@@ -22,14 +27,12 @@ class Slsk(private val serverHost: String, private val serverPort: Int): Abstrac
     override fun start(startFuture: Future<Void>) {
         log.info("Starting slsk verticle")
         val serverListener = future<String>()
-        vertx.deployVerticle(ServerListener(serverHost, serverPort)) {
-            log.info("Slsk verticle co")
-            serverListener.handle(it)
-        }
+        vertx.deployVerticle(ServerListener(serverHost, serverPort), serverListener::handle)
 
         serverListener.setHandler {
             if (it.failed()) startFuture.fail(it.cause())
 
+            log.info("Slsk verticle started")
             startFuture.complete()
         }
     }
