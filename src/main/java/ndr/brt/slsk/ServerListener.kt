@@ -102,7 +102,11 @@ class ServerListener(private val serverHost: String, private val serverPort: Int
         private val connectToPeer: (ProtocolBuffer) -> Unit = { inputMessage ->
             val username = inputMessage.readString()
             val type = inputMessage.readString()
-            log.info("Recv ConnectToPeer: username $username, type $type")
+            val ip = inputMessage.readIp()
+            val port = inputMessage.readInt()
+            val token = inputMessage.readToken()
+            log.info("Recv ConnectToPeer: username $username, type $type, ip $ip, port $port, token $token")
+            eventBus.publish("ConnectToPeer", ConnectToPeer(username, type, ip.toString(), port, token).asJson())
         }
 
         private val login: (ProtocolBuffer) -> Unit = { inputMessage ->

@@ -56,19 +56,4 @@ class SlskTest {
         }
     }
 
-    @Test
-    @Timeout(value = 5, timeUnit = SECONDS)
-    internal fun do_search(vertx: Vertx, context: VertxTestContext) {
-        val slsk = Slsk("username", "password", "localhost", 4321)
-        vertx.deployVerticle(slsk) {
-            slsk.search("query", 2000)
-
-            vertx.eventBus().consumer<JsonObject>("SearchResponded") {
-                val search = it.body().mapTo(SearchResponded::class.java)
-                assertThat(search.files).isEmpty()
-                context.completeNow()
-            }
-        }
-    }
-
 }

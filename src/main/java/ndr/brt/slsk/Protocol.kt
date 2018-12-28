@@ -46,6 +46,17 @@ class Protocol {
             override fun type(): Int = 26
         }
     }
+
+    class ToPeer {
+        class PierceFirewall(private val token: String): Message {
+            override fun toBuffer(): Buffer = Buffer.buffer()
+                    .appendUnsignedByte(type().toShort())
+                    .appendBytes(token.let(hexToBytes))
+
+            override fun type(): Int = 0
+
+        }
+    }
 }
 
 val md5: (String) -> ByteArray = { string ->

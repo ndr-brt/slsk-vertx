@@ -1,15 +1,13 @@
 package ndr.brt.slsk
 
+import bytesToHex
 import io.vertx.core.buffer.Buffer
+import java.io.ByteArrayInputStream
+import java.util.zip.InflaterInputStream
 
-class ProtocolBuffer(private val buffer: Buffer) {
-    constructor() : this(Buffer.buffer())
+class ProtocolBuffer(private val buffer: Buffer, private var pointer: Int = 8) {
 
-    var pointer = 8
-
-    fun size(): Int = buffer.getIntLE(0)
     fun code(): Int = buffer.getIntLE(4)
-    fun length(): Int = buffer.length()
 
     fun readString(): String {
         val length = readInt()
@@ -30,6 +28,27 @@ class ProtocolBuffer(private val buffer: Buffer) {
         return byte
     }
 
-    fun appendBuffer(buff: Buffer): ProtocolBuffer = ProtocolBuffer(buffer.appendBuffer(buff))
+    fun readIp(): Ip {
+        return Ip(
+                buffer.getUnsignedByte(pointer++),
+                buffer.getUnsignedByte(pointer++),
+                buffer.getUnsignedByte(pointer++),
+                buffer.getUnsignedByte(pointer++)
+        )
+    }
+
+    fun readToken(): String {
+        val bytes = buffer.getBytes(pointer, pointer + 4)
+        pointer += 4
+        return bytesToHex(bytes)
+    }
+
+    fun decompress(): ProtocolBuffer = buffer.getBytes(pointer, buffer.length())
+        .let(::ByteArrayInputStream)
+        .let(::InflaterInputStream)
+        .use { stream ->
+            val readAllBytes = stream.readAllBytes()
+            ProtocolBuffer(Buffer.buffer(readAllBytes), 0)
+        }
 
 }
