@@ -47,56 +47,11 @@ class Slsk(private val username: String, private val password: String, private v
             }
         }
 
-        vertx.eventBus().consumer<JsonObject>("ConnectToPeer") { message ->
-            val event = message.body().mapTo(ConnectToPeer::class.java)
-            val peerListener = future<NetSocket>()
-            val client = vertx.createNetClient()
-            client.connect(event.port, event.host, peerListener::handle)
-
-            peerListener.setHandler {
-                if (it.failed()) {
-                    log.error("Error connecting to ${event.username}", it.cause())
-                } else {
-                    val socket = it.result()
-                    socket.handler(InputMessageHandler("PeerInputMessage-${event.username}", vertx.eventBus()))
-                    vertx.eventBus().consumer<Buffer>("PeerInputMessage-${event.username}") { message ->
-                        val inputMessage = ProtocolBuffer(message.body())
-                        log.info("Received message from user ${event.username} code ${inputMessage.code()}")
-                        when (inputMessage.code()) {
-                            9 -> {
-                                val unzip = inputMessage.decompress()
-                                val username = unzip.readString()
-                                val token = unzip.readToken()
-                                val resultsCount = unzip.readInt()
-                                val fileResult = mutableListOf<String>()
-                                for (i in 0 until resultsCount) {
-                                    unzip.readByte()
-                                    val filename = unzip.readString()
-                                    val size1 = unzip.readInt()
-                                    val size2 = unzip.readInt()
-                                    unzip.readString()
-                                    val attributesCount = unzip.readInt()
-                                    for (j in 0 until attributesCount) {
-                                        unzip.readInt()
-                                        unzip.readInt()
-                                    }
-                                    fileResult.add(filename)
-                                }
-                                unzip.readByte()
-                                unzip.readInt()
-                                unzip.readInt()
-                                log.info("Recv FileSearchResult da $username")
-                                if (fileResult.size > 0) {
-                                    vertx.eventBus().emit(SearchResponded(fileResult))
-                                }
-                            }
-                            else -> log.warn("Peer message unknown: ${inputMessage.code()}")
-                        }
-                    }
-
-                    socket.write(Protocol.ToPeer.PierceFirewall(event.token).toChannel())
+        vertx.eventBus().on(ConnectToPeer::class) { event ->
+            PeerListener(event.address, event.info, vertx.createNetClient(), vertx.eventBus()) { async ->
+                if (async.failed()) {
+                    log.error("Error connecting to ${event.info.username}", async.cause())
                 }
-
             }
         }
     }

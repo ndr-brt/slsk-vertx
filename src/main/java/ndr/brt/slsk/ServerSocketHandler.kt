@@ -75,8 +75,11 @@ class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
         val ip = inputMessage.readIp()
         val port = inputMessage.readInt()
         val token = inputMessage.readToken()
-        log.info("Recv ConnectToPeer: username $username, type $type, ip $ip, port $port, token $token")
-        eventBus.emit(ConnectToPeer(username, type, ip.toString(), port, token))
+
+        val address = Address(ip.toString(), port)
+        val info = PeerInfo(username, type, token)
+        log.info("Recv ConnectToPeer: $address, $info")
+        eventBus.emit(ConnectToPeer(address, info))
     }
 
     private val login: (ProtocolBuffer) -> Unit = { inputMessage ->
