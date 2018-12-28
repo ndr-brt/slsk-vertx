@@ -3,7 +3,6 @@ package ndr.brt.slsk
 import io.vertx.core.AsyncResult
 import io.vertx.core.Future
 import io.vertx.core.eventbus.EventBus
-import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetClient
 import org.slf4j.LoggerFactory
 
@@ -32,16 +31,8 @@ class ServerListener(
 
     fun login(username: String, password: String, callback: (LoginResponded) -> Unit) {
         log.info("Login with username {}", username)
-
-        eventBus.consumer<JsonObject>("LoginResponded") {
-            callback(it.body().mapTo(LoginResponded::class.java))
-        }
-
-        emit(LoginRequested(username, password))
-    }
-
-    private fun emit(event: Event) {
-        eventBus.publish(event::class.java.simpleName, event.asJson())
+        eventBus.on(LoginResponded::class, callback::invoke)
+        eventBus.emit(LoginRequested(username, password))
     }
 
 }

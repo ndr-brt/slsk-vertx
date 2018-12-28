@@ -6,10 +6,12 @@ import io.vertx.core.Future
 import io.vertx.core.Future.future
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
+import io.vertx.core.eventbus.EventBus
 import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetSocket
 import org.slf4j.LoggerFactory
 import kotlin.random.Random.Default.nextBytes
+import kotlin.reflect.KClass
 
 fun main(args: Array<String>) {
     val slsk = Slsk("ginogino", "ginogino", "server.slsknet.org", 2242)
@@ -85,7 +87,7 @@ class Slsk(private val username: String, private val password: String, private v
                                 unzip.readInt()
                                 log.info("Recv FileSearchResult da $username")
                                 if (fileResult.size > 0) {
-                                    emit(SearchResponded(fileResult))
+                                    vertx.eventBus().emit(SearchResponded(fileResult))
                                 }
                             }
                             else -> log.warn("Peer message unknown: ${inputMessage.code()}")
@@ -102,12 +104,11 @@ class Slsk(private val username: String, private val password: String, private v
     fun search(query: String, timeout: Long, callback: (SearchResponded) -> Unit) {
         val token = nextBytes(4).let(bytesToHex)
         log.info("Search request $query with timeout $timeout and token $token")
-        emit(SearchRequested(query, token))
+        vertx.eventBus().emit(SearchRequested(query, token))
 
         val results = mutableListOf<String>()
-        vertx.eventBus().consumer<JsonObject>("SearchResponded") { message ->
-            val response = message.body().mapTo(SearchResponded::class.java)
-            results.addAll(response.files)
+        vertx.eventBus().on(SearchResponded::class) { event ->
+            results.addAll(event.files)
         }
 
         vertx.setTimer(timeout) {
@@ -115,8 +116,14 @@ class Slsk(private val username: String, private val password: String, private v
         }
     }
 
-    fun emit(event: Event) {
-        vertx.eventBus().publish(event::class.java.simpleName, event.asJson())
-    }
+}
 
+fun EventBus.emit(event: Event) {
+    publish(event::class.java.simpleName, JsonObject.mapFrom(event))
+}
+
+fun <T> EventBus.on(clazz: KClass<T>, function: (T) -> Unit) where T: Event  {
+    consumer<JsonObject>(clazz::java.get().simpleName) { message ->
+        function.invoke(message.body().mapTo(clazz::java.get()))
+    }
 }

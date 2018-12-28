@@ -3,10 +3,8 @@ package ndr.brt.slsk
 import io.vertx.core.Handler
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.eventbus.EventBus
-import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetSocket
 import org.slf4j.LoggerFactory
-import kotlin.reflect.KClass
 
 class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -29,13 +27,13 @@ class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
             }
         }
 
-        on(LoginRequested::class) { event ->
+        eventBus.on(LoginRequested::class) { event ->
             val login = Protocol.ToServer.Login(event.username, event.password)
             log.info("Send login message to server")
             socket.write(login.toChannel())
         }
 
-        on(SearchRequested::class) { event ->
+        eventBus.on(SearchRequested::class) { event ->
             val fileSearch = Protocol.ToServer.FileSearch(event.token, event.query)
             log.info("Send file search message to server")
             socket.write(fileSearch.toChannel())
@@ -78,22 +76,12 @@ class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
         val port = inputMessage.readInt()
         val token = inputMessage.readToken()
         log.info("Recv ConnectToPeer: username $username, type $type, ip $ip, port $port, token $token")
-        emit(ConnectToPeer(username, type, ip.toString(), port, token))
+        eventBus.emit(ConnectToPeer(username, type, ip.toString(), port, token))
     }
 
     private val login: (ProtocolBuffer) -> Unit = { inputMessage ->
         log.info("Recv Login")
-        emit(LoginResponded(inputMessage.readByte().toInt() == 1, inputMessage.readString()))
-    }
-
-    private fun emit(event: Event) {
-        eventBus.publish(event::class.java.simpleName, event.asJson())
-    }
-
-    private fun <T> on(clazz: KClass<T>, function: (T) -> Unit) where T: Event  {
-        eventBus.consumer<JsonObject>(clazz::java.get().simpleName) { message ->
-            function.invoke(message.body().mapTo(clazz::java.get()))
-        }
+        eventBus.emit(LoginResponded(inputMessage.readByte().toInt() == 1, inputMessage.readString()))
     }
 
 }
