@@ -6,6 +6,7 @@ import io.vertx.core.eventbus.EventBus
 import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetSocket
 import org.slf4j.LoggerFactory
+import kotlin.reflect.KClass
 
 class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -14,31 +15,27 @@ class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
         socket.handler(InputMessageHandler("ServerInputMessage", eventBus))
 
         eventBus.consumer<Buffer>("ServerInputMessage") { message ->
-            message.body()
-                .let { it -> ProtocolBuffer(it) }
-                .let {
-                    when (it.code()) {
-                        1 -> login
-                        18 -> connectToPeer
-                        64 -> numberOfRooms
-                        69 -> privilegedUsers
-                        83 -> parentMinSpeed
-                        84 -> parentSpeedRatio
-                        104 -> wishListInterval
-                        else -> unknownMessage
-                    }.invoke(it)
-                }
+            ProtocolBuffer(message.body()).let {
+                when (it.code()) {
+                    1 -> login
+                    18 -> connectToPeer
+                    64 -> numberOfRooms
+                    69 -> privilegedUsers
+                    83 -> parentMinSpeed
+                    84 -> parentSpeedRatio
+                    104 -> wishListInterval
+                    else -> unknownMessage
+                }.invoke(it)
+            }
         }
 
-        eventBus.consumer<JsonObject>("LoginRequested") { message ->
-            val event = message.body().mapTo(LoginRequested::class.java)
+        on(LoginRequested::class) { event ->
             val login = Protocol.ToServer.Login(event.username, event.password)
             log.info("Send login message to server")
             socket.write(login.toChannel())
         }
 
-        eventBus.consumer<JsonObject>("SearchRequested") { message ->
-            val event = message.body().mapTo(SearchRequested::class.java)
+        on(SearchRequested::class) { event ->
             val fileSearch = Protocol.ToServer.FileSearch(event.token, event.query)
             log.info("Send file search message to server")
             socket.write(fileSearch.toChannel())
@@ -91,6 +88,12 @@ class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
 
     private fun emit(event: Event) {
         eventBus.publish(event::class.java.simpleName, event.asJson())
+    }
+
+    private fun <T> on(clazz: KClass<T>, function: (T) -> Unit) where T: Event  {
+        eventBus.consumer<JsonObject>(clazz::java.get().simpleName) { message ->
+            function.invoke(message.body().mapTo(clazz::java.get()))
+        }
     }
 
 }
