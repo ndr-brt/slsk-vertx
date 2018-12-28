@@ -115,8 +115,7 @@ class Slsk(private val username: String, private val password: String, private v
         }
     }
 
-
-    private fun emit(event: Event) {
+    fun emit(event: Event) {
         vertx.eventBus().publish(event::class.java.simpleName, event.asJson())
     }
 
