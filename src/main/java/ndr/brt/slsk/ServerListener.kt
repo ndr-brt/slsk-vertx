@@ -1,48 +1,49 @@
 package ndr.brt.slsk
 
-import io.vertx.core.AbstractVerticle
+import io.vertx.core.AsyncResult
 import io.vertx.core.Future
 import io.vertx.core.Handler
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.eventbus.EventBus
 import io.vertx.core.json.JsonObject
+import io.vertx.core.net.NetClient
 import io.vertx.core.net.NetSocket
 import org.slf4j.LoggerFactory
 
-class ServerListener(private val serverHost: String, private val serverPort: Int) : AbstractVerticle() {
+class ServerListener(private val serverHost: String, private val serverPort: Int, server: NetClient, private val eventBus: EventBus, callback: (AsyncResult<ServerListener>) -> Unit) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun start(startFuture: Future<Void>) {
+    init {
         log.info("Starting Server Listener")
-        vertx.createNetClient().connect(serverPort, serverHost) {
+        server.connect(serverPort, serverHost) {
             if (it.succeeded()) {
                 log.info("Connected with server {}:{}", serverHost, serverPort)
                 initialize(it.result())
-                startFuture.complete()
+                callback(Future.succeededFuture(this))
             } else {
                 log.error("Connection with server failed", it.cause())
-                startFuture.fail(it.cause())
+                callback(Future.failedFuture(it.cause()))
             }
         }
     }
 
     private fun initialize(socket: NetSocket) {
-        socket.handler(InputMessageHandler("ServerInputMessage", vertx.eventBus()))
+        socket.handler(InputMessageHandler("ServerInputMessage", eventBus))
 
         socket.exceptionHandler { cause ->
             log.error("Error", cause)
         }
 
-        vertx.eventBus().consumer<Buffer>("ServerInputMessage", ServerInputMessage(vertx.eventBus()))
+        eventBus.consumer<Buffer>("ServerInputMessage", ServerInputMessage(eventBus))
 
-        vertx.eventBus().consumer<JsonObject>("LoginRequested") { message ->
+        eventBus.consumer<JsonObject>("LoginRequested") { message ->
             val event = message.body().mapTo(LoginRequested::class.java)
             val login = Protocol.ToServer.Login(event.username, event.password)
             log.info("Send login message to server")
             socket.write(login.toChannel())
         }
 
-        vertx.eventBus().consumer<JsonObject>("SearchRequested") { message ->
+        eventBus.consumer<JsonObject>("SearchRequested") { message ->
             val event = message.body().mapTo(SearchRequested::class.java)
             val fileSearch = Protocol.ToServer.FileSearch(event.token, event.query)
             log.info("Send file search message to server")
@@ -114,6 +115,20 @@ class ServerListener(private val serverHost: String, private val serverPort: Int
             eventBus.publish("LoginResponded", LoginResponded(inputMessage.readByte().toInt() == 1, inputMessage.readString()).asJson())
         }
 
+    }
+
+    fun login(username: String, password: String, callback: (LoginResponded) -> Unit) {
+        log.info("Login with username {}", username)
+
+        eventBus.consumer<JsonObject>("LoginResponded") {
+            callback(it.body().mapTo(LoginResponded::class.java))
+        }
+
+        emit(LoginRequested(username, password))
+    }
+
+    private fun emit(event: Event) {
+        eventBus.publish(event::class.java.simpleName, event.asJson())
     }
 
 }

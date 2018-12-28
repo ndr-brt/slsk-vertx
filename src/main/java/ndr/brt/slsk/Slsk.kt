@@ -29,17 +29,12 @@ class Slsk(private val username: String, private val password: String, private v
 
     override fun start(startFuture: Future<Void>) {
         log.info("Starting slsk verticle")
-        val serverListener = future<String>()
-        vertx.deployVerticle(ServerListener(serverHost, serverPort), serverListener::handle)
 
-        serverListener.setHandler {
-            if (it.failed()) startFuture.fail(it.cause())
+        ServerListener(serverHost, serverPort, vertx.createNetClient(), vertx.eventBus()) { async ->
+            if (async.failed()) startFuture.fail(async.cause())
 
-            log.info("Slsk verticle started")
-            login(username, password)
-
-            vertx.eventBus().consumer<JsonObject>("LoginResponded") {
-                val login = it.body().mapTo(LoginResponded::class.java)
+            val server = async.result()
+            server.login(username, password) { login ->
                 if (login.succeed) {
                     log.info("Login succedeed: ${login.message}")
                     startFuture.complete()
@@ -55,7 +50,6 @@ class Slsk(private val username: String, private val password: String, private v
             val peerListener = future<NetSocket>()
             val client = vertx.createNetClient()
             client.connect(event.port, event.host, peerListener::handle)
-
 
             peerListener.setHandler {
                 if (it.failed()) {
@@ -121,10 +115,6 @@ class Slsk(private val username: String, private val password: String, private v
         }
     }
 
-    private fun login(username: String, password: String) {
-        log.info("Login with username {}", username)
-        emit(LoginRequested(username, password))
-    }
 
     private fun emit(event: Event) {
         vertx.eventBus().publish(event::class.java.simpleName, event.asJson())
