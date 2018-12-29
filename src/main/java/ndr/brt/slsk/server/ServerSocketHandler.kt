@@ -1,9 +1,14 @@
-package ndr.brt.slsk
+package ndr.brt.slsk.server
 
 import io.vertx.core.Handler
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.eventbus.EventBus
 import io.vertx.core.net.NetSocket
+import ndr.brt.slsk.*
+import ndr.brt.slsk.peer.PeerInfo
+import ndr.brt.slsk.protocol.InputMessageHandler
+import ndr.brt.slsk.protocol.Protocol
+import ndr.brt.slsk.protocol.ProtocolBuffer
 import org.slf4j.LoggerFactory
 
 class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {

@@ -3,12 +3,11 @@ package ndr.brt.slsk
 import bytesToHex
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.Future
-import io.vertx.core.Future.future
 import io.vertx.core.Vertx
-import io.vertx.core.buffer.Buffer
 import io.vertx.core.eventbus.EventBus
 import io.vertx.core.json.JsonObject
-import io.vertx.core.net.NetSocket
+import ndr.brt.slsk.peer.PeerListener
+import ndr.brt.slsk.server.ServerListener
 import org.slf4j.LoggerFactory
 import kotlin.random.Random.Default.nextBytes
 import kotlin.reflect.KClass

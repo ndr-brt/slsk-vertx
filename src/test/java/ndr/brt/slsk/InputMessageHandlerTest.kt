@@ -6,6 +6,7 @@ import io.vertx.core.buffer.Buffer.*
 import io.vertx.junit5.Timeout
 import io.vertx.junit5.VertxExtension
 import io.vertx.junit5.VertxTestContext
+import ndr.brt.slsk.protocol.InputMessageHandler
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.util.concurrent.TimeUnit

@@ -1,4 +1,4 @@
-package ndr.brt.slsk
+package ndr.brt.slsk.peer
 
 import io.vertx.core.AsyncResult
 import io.vertx.core.Future
@@ -7,6 +7,10 @@ import io.vertx.core.buffer.Buffer
 import io.vertx.core.eventbus.EventBus
 import io.vertx.core.net.NetClient
 import io.vertx.core.net.NetSocket
+import ndr.brt.slsk.*
+import ndr.brt.slsk.protocol.InputMessageHandler
+import ndr.brt.slsk.protocol.Protocol
+import ndr.brt.slsk.protocol.ProtocolBuffer
 import org.slf4j.LoggerFactory
 
 class PeerListener(address: Address, private val info: PeerInfo, peer: NetClient, private val eventBus: EventBus, callback: (AsyncResult<PeerListener>) -> Unit) {

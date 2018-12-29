@@ -1,4 +1,4 @@
-package ndr.brt.slsk
+package ndr.brt.slsk.protocol
 
 import bytesToHex
 import io.vertx.core.buffer.Buffer

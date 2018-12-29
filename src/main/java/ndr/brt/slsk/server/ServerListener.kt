@@ -1,9 +1,13 @@
-package ndr.brt.slsk
+package ndr.brt.slsk.server
 
 import io.vertx.core.AsyncResult
 import io.vertx.core.Future
 import io.vertx.core.eventbus.EventBus
 import io.vertx.core.net.NetClient
+import ndr.brt.slsk.LoginRequested
+import ndr.brt.slsk.LoginResponded
+import ndr.brt.slsk.emit
+import ndr.brt.slsk.on
 import org.slf4j.LoggerFactory
 
 class ServerListener(

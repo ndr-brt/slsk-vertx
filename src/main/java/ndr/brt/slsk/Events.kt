@@ -1,5 +1,7 @@
 package ndr.brt.slsk
 
+import ndr.brt.slsk.peer.PeerInfo
+
 interface Event
 
 data class LoginRequested(val username: String = "", val password: String = ""): Event

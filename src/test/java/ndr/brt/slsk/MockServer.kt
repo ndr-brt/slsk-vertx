@@ -6,6 +6,8 @@ import io.vertx.core.Handler
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.net.NetServer
 import io.vertx.core.net.NetSocket
+import ndr.brt.slsk.protocol.Protocol
+import ndr.brt.slsk.protocol.parseToServerMessage
 import org.slf4j.LoggerFactory
 
 class MockServer(private val port: Int) : AbstractVerticle() {
