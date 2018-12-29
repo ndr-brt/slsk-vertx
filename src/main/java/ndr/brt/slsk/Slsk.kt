@@ -30,8 +30,6 @@ class Slsk(private val username: String, private val password: String, private v
     private val searchResults: MutableMap<String, MutableList<String>> = mutableMapOf()
 
     override fun start(startFuture: Future<Void>) {
-        log.info("Starting slsk verticle")
-
         ServerListener(serverHost, serverPort, vertx.createNetClient(), vertx.eventBus()) { async ->
             if (async.failed()) startFuture.fail(async.cause())
 
@@ -50,7 +48,9 @@ class Slsk(private val username: String, private val password: String, private v
         vertx.eventBus().on(ConnectToPeer::class) { event ->
             PeerListener(event.address, event.info, vertx.createNetClient(), vertx.eventBus()) { async ->
                 if (async.failed()) {
-                    log.error("Error connecting to ${event.info.username}", async.cause())
+                    log.error("Error connecting to ${event.info.username} on ${event.address}: ${async.cause()}")
+                } else {
+                    log.info("Connected to ${event.info.username} on ${event.address}")
                 }
             }
         }

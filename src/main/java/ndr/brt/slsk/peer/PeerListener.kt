@@ -15,18 +15,13 @@ import org.slf4j.LoggerFactory
 
 class PeerListener(address: Address, private val info: PeerInfo, peer: NetClient, private val eventBus: EventBus, callback: (AsyncResult<PeerListener>) -> Unit) {
 
-    private val log = LoggerFactory.getLogger(javaClass)
-
     init {
-        log.info("Starting Peer Listener")
         peer.connect(address.port, address.host) {
             if (it.succeeded()) {
-                log.info("Connected with peer $address")
                 PeerSocketHandler(info, eventBus).handle(it.result())
                 it.result().write(Protocol.ToPeer.PierceFirewall(info.token).toChannel())
                 callback(Future.succeededFuture(this))
             } else {
-                log.error("Connection with peer failed", it.cause())
                 callback(Future.failedFuture(it.cause()))
             }
         }
