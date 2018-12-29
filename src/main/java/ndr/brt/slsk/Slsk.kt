@@ -27,6 +27,7 @@ fun main(args: Array<String>) {
 class Slsk(private val username: String, private val password: String, private val serverHost: String, private val serverPort: Int): AbstractVerticle() {
 
     private val log = LoggerFactory.getLogger(javaClass)
+    private val searchResults: MutableMap<String, MutableList<String>> = mutableMapOf()
 
     override fun start(startFuture: Future<Void>) {
         log.info("Starting slsk verticle")
@@ -60,13 +61,13 @@ class Slsk(private val username: String, private val password: String, private v
         log.info("Search request $query with timeout $timeout and token $token")
         vertx.eventBus().emit(SearchRequested(query, token))
 
-        val results = mutableListOf<String>()
+        searchResults[token] = mutableListOf()
         vertx.eventBus().on(SearchResponded::class) { event ->
-            results.addAll(event.files)
+            searchResults[token]!!.addAll(event.files)
         }
 
         vertx.setTimer(timeout) {
-            callback(SearchResponded(results))
+            callback(SearchResponded(token, searchResults[token].orEmpty()))
         }
     }
 

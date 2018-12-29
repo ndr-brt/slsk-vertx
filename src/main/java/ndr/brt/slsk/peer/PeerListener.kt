@@ -66,7 +66,7 @@ class PeerListener(address: Address, private val info: PeerInfo, peer: NetClient
                         unzip.readInt()
                         log.info("Recv FileSearchResult da $username")
                         if (fileResult.size > 0) {
-                            eventBus.emit(SearchResponded(fileResult))
+                            eventBus.emit(SearchResponded(token, fileResult))
                         }
                     }
                     else -> log.warn("Peer message unknown: ${inputMessage.code()}")
