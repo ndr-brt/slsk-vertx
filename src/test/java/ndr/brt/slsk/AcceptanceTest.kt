@@ -30,8 +30,19 @@ internal class AcceptanceTest {
     @Timeout(value = 5, timeUnit = TimeUnit.SECONDS)
     internal fun search(context: VertxTestContext) {
         slsk.search("leatherface", 2000) {
-            assertThat(it.files).isNotEmpty
+            assertThat(it.results.flatMap(SearchResponded::files)).isNotEmpty
             context.completeNow()
         }
     }
+/*
+    @Test
+    @Timeout(value = 5, timeUnit = TimeUnit.SECONDS)
+    internal fun download(context: VertxTestContext) {
+        slsk.search("leatherface", 2000) {
+            slsk.download(it.results[0])
+
+            context.completeNow()
+        }
+    }
+*/
 }

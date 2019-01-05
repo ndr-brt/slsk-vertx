@@ -22,6 +22,7 @@ class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
                 when (it.code()) {
                     1 -> login
                     18 -> connectToPeer
+                    22 -> privateMessage
                     64 -> numberOfRooms
                     69 -> privilegedUsers
                     83 -> parentMinSpeed
@@ -47,6 +48,14 @@ class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
 
     private val unknownMessage: (ProtocolBuffer) -> Unit = { inputMessage ->
         log.warn("Server message code ${inputMessage.code()} unknown")
+    }
+
+    private val privateMessage: (ProtocolBuffer) -> Unit = {
+        val id = it.readInt()
+        val timestamp = it.readInt()
+        val username = it.readString()
+        val message = it.readString()
+        log.info("Private message from $username at $timestamp: $message. id $id")
     }
 
     private val wishListInterval: (ProtocolBuffer) -> Unit = { inputMessage ->

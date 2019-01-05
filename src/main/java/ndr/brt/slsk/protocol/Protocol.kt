@@ -54,7 +54,26 @@ class Protocol {
                     .appendBytes(token.let(hexToBytes))
 
             override fun type(): Int = 0
+        }
 
+        class TransferRequest(private val token: String, private val filename: String): Message {
+            override fun type(): Int = 40
+
+            override fun toBuffer(): Buffer = Buffer.buffer()
+                    .appendIntLE(type())
+                    .appendIntLE(0)
+                    .appendBytes(token.let(hexToBytes))
+                    .appendIntLE(filename.length)
+                    .appendString(filename)
+        }
+
+        class TransferResponse(private val token: String): Message {
+            override fun type(): Int = 41
+
+            override fun toBuffer(): Buffer = Buffer.buffer()
+                    .appendIntLE(type())
+                    .appendBytes(token.let(hexToBytes))
+                    .appendByte(1)
         }
     }
 }

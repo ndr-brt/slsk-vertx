@@ -51,4 +51,8 @@ class ProtocolBuffer(private val buffer: Buffer, private var pointer: Int = 8) {
             ProtocolBuffer(Buffer.buffer(readAllBytes), 0)
         }
 
+    fun readBoolean(): Boolean = readByte().toInt() == 1
+
+    fun readTransferDirection(): TransferDirection = TransferDirection.values()[readInt()]
+
 }
