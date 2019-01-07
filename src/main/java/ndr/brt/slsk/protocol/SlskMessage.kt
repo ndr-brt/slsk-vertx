@@ -10,6 +10,4 @@ interface SlskMessage {
                 .appendIntLE(buffer.length())
                 .appendBuffer(buffer)
     }
-
-    fun type(): Int
 }
