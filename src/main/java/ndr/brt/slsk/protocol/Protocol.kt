@@ -3,12 +3,12 @@ package ndr.brt.slsk.protocol
 import bytesToHex
 import hexToBytes
 import io.vertx.core.buffer.Buffer
-import java.security.MessageDigest
+import ndr.brt.slsk.md5
 
 
 class Protocol {
     class FromServer {
-        class Login(private val successful: Boolean, private val message: String): Message {
+        class Login(private val successful: Boolean, private val message: String): SlskMessage {
             override fun type(): Int = 1
 
             override fun toBuffer() = Buffer.buffer()
@@ -20,7 +20,7 @@ class Protocol {
     }
 
     class ToServer {
-        class Login(private val username: String, val password: String) : Message {
+        class Login(private val username: String, val password: String) : SlskMessage {
 
             override fun type(): Int = 1
 
@@ -36,7 +36,7 @@ class Protocol {
                     .appendIntLE(17)
         }
 
-        class FileSearch(private val token: String, private val query: String): Message {
+        class FileSearch(private val token: String, private val query: String): SlskMessage {
             override fun toBuffer(): Buffer = Buffer.buffer()
                     .appendIntLE(type())
                     .appendBytes(token.let(hexToBytes))
@@ -48,7 +48,7 @@ class Protocol {
     }
 
     class ToPeer {
-        class PierceFirewall(private val token: String): Message {
+        class PierceFirewall(private val token: String): SlskMessage {
             override fun toBuffer(): Buffer = Buffer.buffer()
                     .appendUnsignedByte(type().toShort())
                     .appendBytes(token.let(hexToBytes))
@@ -56,7 +56,7 @@ class Protocol {
             override fun type(): Int = 0
         }
 
-        class TransferRequest(private val token: String, private val filename: String): Message {
+        class TransferRequest(private val token: String, private val filename: String): SlskMessage {
             override fun type(): Int = 40
 
             override fun toBuffer(): Buffer = Buffer.buffer()
@@ -67,7 +67,7 @@ class Protocol {
                     .appendString(filename)
         }
 
-        class TransferResponse(private val token: String): Message {
+        class TransferResponse(private val token: String): SlskMessage {
             override fun type(): Int = 41
 
             override fun toBuffer(): Buffer = Buffer.buffer()
@@ -78,32 +78,3 @@ class Protocol {
     }
 }
 
-val md5: (String) -> ByteArray = { string ->
-    MessageDigest.getInstance("MD5").digest(string.toByteArray())
-}
-
-val parseToServerMessage: (Buffer) -> Message = {
-    val buffer = ProtocolBuffer(it)
-    val type = buffer.code()
-    when (type) {
-        1 -> Protocol.ToServer.Login(buffer.readString(), buffer.readString())
-        else -> UnknownMessage(type)
-    }
-}
-
-class UnknownMessage(private val type: Int) : Message {
-    override fun toBuffer(): Buffer = Buffer.buffer()
-    override fun type(): Int = type
-}
-
-interface Message {
-    fun toBuffer(): Buffer
-    fun toChannel(): Buffer {
-        val buffer = toBuffer()
-        return Buffer.buffer()
-                .appendIntLE(buffer.length())
-                .appendBuffer(buffer)
-    }
-
-    fun type(): Int
-}

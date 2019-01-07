@@ -7,7 +7,7 @@ import io.vertx.core.buffer.Buffer
 import io.vertx.core.net.NetServer
 import io.vertx.core.net.NetSocket
 import ndr.brt.slsk.protocol.Protocol
-import ndr.brt.slsk.protocol.parseToServerMessage
+import ndr.brt.slsk.protocol.ProtocolBuffer
 import org.slf4j.LoggerFactory
 
 class MockServer(private val port: Int) : AbstractVerticle() {
@@ -32,18 +32,20 @@ class MockServer(private val port: Int) : AbstractVerticle() {
 
         private val log = LoggerFactory.getLogger(javaClass)
 
-        override fun handle(buffer: Buffer) {
-
-            val message = parseToServerMessage(buffer)
-            when (message) {
-                is Protocol.ToServer.Login -> {
+        override fun handle(input: Buffer) {
+            val buffer = ProtocolBuffer(input)
+            val type = buffer.code()
+            when (type) {
+                1 -> {
+                    val message = Protocol.ToServer.Login(buffer.readString(), buffer.readString())
                     socket.write(when {
                         message.password.contains("wrong") -> Protocol.FromServer.Login(false, "Login failed!")
                         else -> Protocol.FromServer.Login(true, "Welcome to soulseek!")
                     }.toChannel())
                 }
-                else -> log.info("Unknown message type ${message.type()}")
+                else -> log.info("Unknown message type $type")
             }
+
         }
     }
 }
