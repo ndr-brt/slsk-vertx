@@ -11,8 +11,6 @@ import ndr.brt.slsk.*
 import ndr.brt.slsk.protocol.InputMessageHandler
 import ndr.brt.slsk.protocol.Protocol
 import ndr.brt.slsk.protocol.ProtocolBuffer
-import ndr.brt.slsk.protocol.TransferDirection
-import ndr.brt.slsk.protocol.TransferDirection.Download
 import org.slf4j.LoggerFactory
 
 class PeerListener(address: Address, private val info: PeerInfo, peer: NetClient, private val eventBus: EventBus, callback: (AsyncResult<PeerListener>) -> Unit) {

@@ -9,7 +9,7 @@ import ndr.brt.slsk.md5
 class Protocol {
     class FromServer {
         class Login(private val successful: Boolean, private val message: String): SlskMessage {
-            override fun toBuffer() = Buffer.buffer()
+            override fun toBuffer(): Buffer = Buffer.buffer()
                     .appendIntLE(1)
                     .appendByte(if (successful) 1 else 0)
                     .appendIntLE(message.length)
