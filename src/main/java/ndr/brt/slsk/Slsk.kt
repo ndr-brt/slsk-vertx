@@ -13,17 +13,24 @@ import org.slf4j.LoggerFactory
 import kotlin.random.Random.Default.nextBytes
 import kotlin.reflect.KClass
 
-fun main(args: Array<String>) {
+fun main() {
     val slsk = Slsk("ginogino", "ginogino", "server.slsknet.org", 2242)
     val vertx = Vertx.vertx()
     vertx.deployVerticle(slsk) {
         if (it.failed()) throw it.cause()
 
-        slsk.search("leatherface", 2000) { event ->
-            slsk.download(event.results
+        slsk.search("leatherface", 3000) { event ->
+            event.results
                     .filter(SearchResponded::slots)
                     .flatMap(SearchResponded::files)
-                    .first())
+                    .firstOrNull()
+                    .let { file ->
+                        if (file != null) {
+                            slsk.download(file)
+                        } else {
+                            println("No results found")
+                        }
+                    }
         }
     }
 }

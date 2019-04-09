@@ -60,7 +60,7 @@ class Protocol {
             override fun toBuffer(): Buffer = Buffer.buffer()
                     .appendIntLE(41)
                     .appendBytes(token.let(hexToBytes))
-                    .appendByte(1)
+                    .appendUnsignedByte(1)
         }
     }
 }

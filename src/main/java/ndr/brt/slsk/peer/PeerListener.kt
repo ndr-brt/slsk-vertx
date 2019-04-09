@@ -30,7 +30,7 @@ class PeerListener(address: Address, private val info: PeerInfo, peer: NetClient
     }
 
     fun transferRequest(token: String, filename: String) {
-        log.info("Transfer Request to ${info.username} for $filename")
+        log.info("send TransferRequest to ${info.username} for $filename")
         eventBus.emit(TransferRequested(info.username, token, filename))
     }
 
@@ -81,15 +81,16 @@ class PeerListener(address: Address, private val info: PeerInfo, peer: NetClient
             val filename = it.readString()
             log.info("${info.username}: TransferRequest $direction for $filename")
             eventBus.emit(TransferResponded(info.username, token))
-
         }
+
         private val transferResponse: (ProtocolBuffer) -> Unit = {
             val token = it.readToken()
             val allowed = it.readBoolean()
             if (allowed) {
                 log.info("${info.username}: Download allowed")
             } else {
-                log.warn("${info.username}: Download not allowed")
+                val reason = it.readString()
+                log.warn("${info.username}: Download not allowed because $reason")
             }
         }
 
