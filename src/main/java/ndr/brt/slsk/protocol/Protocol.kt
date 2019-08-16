@@ -5,15 +5,13 @@ import hexToBytes
 import io.vertx.core.buffer.Buffer
 import ndr.brt.slsk.md5
 
-
 class Protocol {
     class FromServer {
         class Login(private val successful: Boolean, private val message: String): SlskMessage {
             override fun toBuffer(): Buffer = Buffer.buffer()
                     .appendIntLE(1)
                     .appendByte(if (successful) 1 else 0)
-                    .appendIntLE(message.length)
-                    .appendString(message)
+                    .appendStringWithLength(message)
         }
     }
 
@@ -21,13 +19,10 @@ class Protocol {
         class Login(private val username: String, val password: String) : SlskMessage {
             override fun toBuffer(): Buffer = Buffer.buffer()
                     .appendIntLE(1)
-                    .appendIntLE(username.length)
-                    .appendString(username)
-                    .appendIntLE(password.length)
-                    .appendString(password)
+                    .appendStringWithLength(username)
+                    .appendStringWithLength(password)
                     .appendIntLE(160)
-                    .appendIntLE(username.plus(password).let(md5).let(bytesToHex).length)
-                    .appendString(username.plus(password).let(md5).let(bytesToHex))
+                    .appendStringWithLength(username.plus(password).let(md5).let(bytesToHex))
                     .appendIntLE(17)
         }
 
@@ -35,8 +30,7 @@ class Protocol {
             override fun toBuffer(): Buffer = Buffer.buffer()
                     .appendIntLE(26)
                     .appendBytes(token.let(hexToBytes))
-                    .appendIntLE(query.length)
-                    .appendString(query)
+                    .appendStringWithLength(query)
         }
     }
 
@@ -47,13 +41,21 @@ class Protocol {
                     .appendBytes(token.let(hexToBytes))
         }
 
+        class PeerInit(private val username: String, private val type: String, private val token: String): SlskMessage {
+            override fun toBuffer(): Buffer = Buffer.buffer()
+                    .appendUnsignedByte(1)
+                    .appendStringWithLength(username)
+                    .appendStringWithLength(type)
+                    .appendBytes(token.let(hexToBytes))
+
+        }
+
         class TransferRequest(private val token: String, private val filename: String): SlskMessage {
             override fun toBuffer(): Buffer = Buffer.buffer()
                     .appendIntLE(40)
                     .appendIntLE(0)
                     .appendBytes(token.let(hexToBytes))
-                    .appendIntLE(filename.length)
-                    .appendString(filename)
+                    .appendStringWithLength(filename)
         }
 
         class TransferResponse(private val token: String): SlskMessage {
@@ -65,3 +67,6 @@ class Protocol {
     }
 }
 
+fun Buffer.appendStringWithLength(value: String) : Buffer = this
+    .appendIntLE(value.length)
+    .appendString(value)
