@@ -98,7 +98,9 @@ class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
 
     private val login: (ProtocolBuffer) -> Unit = { inputMessage ->
         log.info("Recv Login")
-        eventBus.emit(LoginResponded(inputMessage.readByte().toInt() == 1, inputMessage.readString()))
+        val succeed = inputMessage.readByte().toInt() == 1
+        val message = inputMessage.readString()
+        eventBus.emit(LoginResponded(succeed, message))
     }
 
 }

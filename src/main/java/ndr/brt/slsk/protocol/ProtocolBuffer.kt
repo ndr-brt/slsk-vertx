@@ -48,7 +48,7 @@ class ProtocolBuffer(private val buffer: Buffer, private var pointer: Int = 8) {
         .let(::InflaterInputStream)
         .use { stream ->
             val readAllBytes = stream.readAllBytes()
-            ProtocolBuffer(Buffer.buffer(readAllBytes), 0)
+            ProtocolBuffer(Buffer.buffer(readAllBytes), pointer = 0)
         }
 
     fun readBoolean(): Boolean = readByte().toInt() == 1
