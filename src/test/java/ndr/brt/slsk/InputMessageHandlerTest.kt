@@ -7,6 +7,7 @@ import io.vertx.junit5.Timeout
 import io.vertx.junit5.VertxExtension
 import io.vertx.junit5.VertxTestContext
 import ndr.brt.slsk.protocol.InputMessageHandler
+import ndr.brt.slsk.protocol.appendStringWithLength
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import java.util.concurrent.TimeUnit
@@ -22,8 +23,7 @@ internal class InputMessageHandlerTest {
                 .appendIntLE(17)
                 .appendIntLE(1)
                 .appendByte(1)
-                .appendIntLE(8)
-                .appendString("12345678")
+                .appendStringWithLength("12345678")
 
         vertx.eventBus().consumer<Buffer>("publish-address") {
             assert(it.body() == message)
@@ -43,8 +43,7 @@ internal class InputMessageHandlerTest {
                 .appendByte(1)
 
         val partTwo = buffer()
-                .appendIntLE(8)
-                .appendString("12345678")
+                .appendStringWithLength("12345678")
 
         vertx.eventBus().consumer<Buffer>("publish-address") {
             assert(it.body() == partOne.appendBuffer(partTwo))
@@ -63,8 +62,7 @@ internal class InputMessageHandlerTest {
                 .appendIntLE(17)
                 .appendIntLE(1)
                 .appendByte(1)
-                .appendIntLE(8)
-                .appendString("12345678")
+                .appendStringWithLength("12345678")
 
         vertx.eventBus().consumer<Buffer>("publish-address") {
             assert(it.body() == message)
