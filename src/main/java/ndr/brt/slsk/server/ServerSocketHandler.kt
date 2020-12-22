@@ -11,96 +11,96 @@ import ndr.brt.slsk.protocol.Protocol
 import ndr.brt.slsk.protocol.ProtocolBuffer
 import org.slf4j.LoggerFactory
 
-class ServerSocketHandler(private val eventBus: EventBus): Handler<NetSocket> {
-    private val log = LoggerFactory.getLogger(javaClass)
+class ServerSocketHandler(private val eventBus: EventBus) : Handler<NetSocket> {
+  private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun handle(socket: NetSocket) {
-        socket.handler(InputMessageHandler("ServerInputMessage", eventBus))
+  override fun handle(socket: NetSocket) {
+    socket.handler(InputMessageHandler("ServerInputMessage", eventBus))
 
-        eventBus.consumer<Buffer>("ServerInputMessage") { message ->
-            ProtocolBuffer(message.body()).let {
-                when (it.code()) {
-                    1 -> login
-                    18 -> connectToPeer
-                    22 -> privateMessage
-                    64 -> numberOfRooms
-                    69 -> privilegedUsers
-                    83 -> parentMinSpeed
-                    84 -> parentSpeedRatio
-                    104 -> wishListInterval
-                    else -> unknownMessage
-                }.invoke(it)
-            }
-        }
-
-        eventBus.on(LoginRequested::class) { event ->
-            val login = Protocol.ToServer.Login(event.username, event.password)
-            log.info("Send login message to server")
-            socket.write(login.toChannel())
-        }
-
-        eventBus.on(SearchRequested::class) { event ->
-            val fileSearch = Protocol.ToServer.FileSearch(event.token, event.query)
-            log.info("Send file search message to server")
-            socket.write(fileSearch.toChannel())
-        }
+    eventBus.consumer<Buffer>("ServerInputMessage") { message ->
+      ProtocolBuffer(message.body()).let {
+        when (it.code()) {
+          1 -> login
+          18 -> connectToPeer
+          22 -> privateMessage
+          64 -> numberOfRooms
+          69 -> privilegedUsers
+          83 -> parentMinSpeed
+          84 -> parentSpeedRatio
+          104 -> wishListInterval
+          else -> unknownMessage
+        }.invoke(it)
+      }
     }
 
-    private val unknownMessage: (ProtocolBuffer) -> Unit = { inputMessage ->
-        log.warn("Server message code ${inputMessage.code()} unknown")
+    eventBus.on(LoginRequested::class) { event ->
+      val login = Protocol.ToServer.Login(event.username, event.password)
+      log.info("Send login message to server")
+      socket.write(login.toChannel())
     }
 
-    private val privateMessage: (ProtocolBuffer) -> Unit = {
-        val id = it.readInt()
-        val timestamp = it.readInt()
-        val username = it.readString()
-        val message = it.readString()
-        log.info("Private message from $username at $timestamp: $message. id $id")
+    eventBus.on(SearchRequested::class) { event ->
+      val fileSearch = Protocol.ToServer.FileSearch(event.token, event.query)
+      log.info("Send file search message to server")
+      socket.write(fileSearch.toChannel())
     }
+  }
 
-    private val wishListInterval: (ProtocolBuffer) -> Unit = { inputMessage ->
-        val wishlistInterval = inputMessage.readInt()
-        log.info("Recv WishlistInterval: $wishlistInterval")
-    }
+  private val unknownMessage: (ProtocolBuffer) -> Unit = { inputMessage ->
+    log.warn("Server message code ${inputMessage.code()} unknown")
+  }
 
-    private val parentSpeedRatio: (ProtocolBuffer) -> Unit = { inputMessage ->
-        val parentSpeedRatio = inputMessage.readInt()
-        log.info("Recv ParentSpeedRatio: $parentSpeedRatio")
-    }
+  private val privateMessage: (ProtocolBuffer) -> Unit = {
+    val id = it.readInt()
+    val timestamp = it.readInt()
+    val username = it.readString()
+    val message = it.readString()
+    log.info("Private message from $username at $timestamp: $message. id $id")
+  }
 
-    private val parentMinSpeed: (ProtocolBuffer) -> Unit = { inputMessage ->
-        val parentMinSpeed = inputMessage.readInt()
-        log.info("Recv ParentMinSpeed: $parentMinSpeed")
-    }
+  private val wishListInterval: (ProtocolBuffer) -> Unit = { inputMessage ->
+    val wishlistInterval = inputMessage.readInt()
+    log.info("Recv WishlistInterval: $wishlistInterval")
+  }
 
-    private val privilegedUsers: (ProtocolBuffer) -> Unit = { inputMessage ->
-        val privilegedUsers = inputMessage.readInt()
-        log.info("Recv PrivilegedUsers: $privilegedUsers")
-    }
+  private val parentSpeedRatio: (ProtocolBuffer) -> Unit = { inputMessage ->
+    val parentSpeedRatio = inputMessage.readInt()
+    log.info("Recv ParentSpeedRatio: $parentSpeedRatio")
+  }
 
-    private val numberOfRooms: (ProtocolBuffer) -> Unit = { inputMessage ->
-        val numberOfRooms = inputMessage.readInt()
-        log.info("Recv RoomList: $numberOfRooms")
-    }
+  private val parentMinSpeed: (ProtocolBuffer) -> Unit = { inputMessage ->
+    val parentMinSpeed = inputMessage.readInt()
+    log.info("Recv ParentMinSpeed: $parentMinSpeed")
+  }
 
-    private val connectToPeer: (ProtocolBuffer) -> Unit = { inputMessage ->
-        val username = inputMessage.readString()
-        val type = inputMessage.readString()
-        val ip = inputMessage.readIp()
-        val port = inputMessage.readInt()
-        val token = inputMessage.readToken()
+  private val privilegedUsers: (ProtocolBuffer) -> Unit = { inputMessage ->
+    val privilegedUsers = inputMessage.readInt()
+    log.info("Recv PrivilegedUsers: $privilegedUsers")
+  }
 
-        val address = Address(ip.toString(), port)
-        val info = PeerInfo(username, type, token)
-        log.info("Recv ConnectToPeer: $address, $info")
-        eventBus.emit(ConnectToPeer(address, info))
-    }
+  private val numberOfRooms: (ProtocolBuffer) -> Unit = { inputMessage ->
+    val numberOfRooms = inputMessage.readInt()
+    log.info("Recv RoomList: $numberOfRooms")
+  }
 
-    private val login: (ProtocolBuffer) -> Unit = { inputMessage ->
-        log.info("Recv Login")
-        val succeed = inputMessage.readByte().toInt() == 1
-        val message = inputMessage.readString()
-        eventBus.emit(LoginResponded(succeed, message))
-    }
+  private val connectToPeer: (ProtocolBuffer) -> Unit = { inputMessage ->
+    val username = inputMessage.readString()
+    val type = inputMessage.readString()
+    val ip = inputMessage.readIp()
+    val port = inputMessage.readInt()
+    val token = inputMessage.readToken()
+
+    val address = Address(ip.toString(), port)
+    val info = PeerInfo(username, type, token)
+    log.info("Recv ConnectToPeer: $address, $info")
+    eventBus.emit(ConnectToPeer(address, info))
+  }
+
+  private val login: (ProtocolBuffer) -> Unit = { inputMessage ->
+    log.info("Recv Login")
+    val succeed = inputMessage.readByte().toInt() == 1
+    val message = inputMessage.readString()
+    eventBus.emit(LoginResponded(succeed, message))
+  }
 
 }

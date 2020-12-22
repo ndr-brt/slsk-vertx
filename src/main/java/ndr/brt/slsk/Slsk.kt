@@ -3,6 +3,7 @@ package ndr.brt.slsk
 import bytesToHex
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.vertx.core.AbstractVerticle
+import io.vertx.core.Future
 import io.vertx.core.Promise
 import io.vertx.core.Vertx
 import io.vertx.core.eventbus.EventBus
@@ -16,90 +17,99 @@ import kotlin.random.Random.Default.nextBytes
 import kotlin.reflect.KClass
 
 fun main() {
-    val slsk = Slsk("ginogino", "ginogino", "server.slsknet.org", 2242)
-    val vertx = Vertx.vertx()
-    vertx.deployVerticle(slsk) {
-        if (it.failed()) throw it.cause()
+  val slsk = Slsk("ginogino", "ginogino", "server.slsknet.org", 2242)
+  val vertx = Vertx.vertx()
 
-        slsk.search("leatherface", 3000) { event ->
-            event.results
-                    .filter(SearchResponded::slots)
-                    .flatMap(SearchResponded::files)
-                    .firstOrNull()
-                    .let { file ->
-                        if (file != null) {
-                            slsk.download(file)
-                        } else {
-                            println("No results found")
-                        }
-                    }
+  vertx.deployVerticle(slsk)
+    .compose { slsk.search("leatherface", 3000) }
+    .onSuccess { event ->
+      event.results
+        .filter(SearchResponded::slots)
+        .flatMap(SearchResponded::files)
+        .firstOrNull()
+        .let { file ->
+          if (file != null) {
+            slsk.download(file)
+          } else {
+            println("No results found")
+          }
         }
+    }
+    .onFailure { cause ->
+      cause.printStackTrace()
     }
 }
 
-class Slsk(private val username: String, private val password: String, private val serverHost: String, private val serverPort: Int): AbstractVerticle() {
+class Slsk(
+  private val username: String,
+  private val password: String,
+  private val serverHost: String,
+  private val serverPort: Int
+) : AbstractVerticle() {
 
-    private val log = LoggerFactory.getLogger(javaClass)
-    private val searchResults: MutableMap<String, MutableList<SearchResponded>> = mutableMapOf()
-    private val peers: MutableMap<String, PeerListener> = mutableMapOf()
+  private val log = LoggerFactory.getLogger(javaClass)
+  private val searchResults: MutableMap<String, MutableList<SearchResponded>> = mutableMapOf()
+  private val peers: MutableMap<String, PeerListener> = mutableMapOf()
 
-    override fun start(start: Promise<Void>) {
-      DatabindCodec.mapper().registerModule(KotlinModule())
+  override fun start(start: Promise<Void>) {
+    DatabindCodec.mapper().registerModule(KotlinModule())
 
-      val serverListener = ServerListener(serverHost, serverPort, vertx.createNetClient(), vertx.eventBus())
-      serverListener.connect()
-        .compose { server -> server.login(username, password) }
-        .onSuccess { login ->
-          if (login.succeed) {
-            log.info("Login succedeed: ${login.message}")
-            start.complete()
-          } else {
-            log.error("Login failed: ${login.message}")
-            start.fail(login.message)
-          }
+    val serverListener = ServerListener(serverHost, serverPort, vertx.createNetClient(), vertx.eventBus())
+    serverListener.connect()
+      .compose { server -> server.login(username, password) }
+      .onSuccess { login ->
+        if (login.succeed) {
+          log.info("Login succedeed: ${login.message}")
+          start.complete()
+        } else {
+          log.error("Login failed: ${login.message}")
+          start.fail(login.message)
         }
-        .onFailure { cause -> start.fail(cause) }
+      }
+      .onFailure { cause -> start.fail(cause) }
 
-        vertx.eventBus().on(ConnectToPeer::class) { event ->
-            PeerListener(event.address, event.info, vertx.createNetClient(), vertx.eventBus()) { async ->
-                if (async.failed()) {
-                    log.error("Error connecting to ${event.info.username} on ${event.address}: ${async.cause()}")
-                } else {
-                    log.info("Connected to ${event.info.username} on ${event.address}")
-                    peers[event.info.username] = async.result()
-                }
-            }
+    vertx.eventBus().on(ConnectToPeer::class) { event ->
+      PeerListener(event.address, event.info, vertx.createNetClient(), vertx.eventBus()) { async ->
+        if (async.failed()) {
+          log.error("Error connecting to ${event.info.username} on ${event.address}: ${async.cause()}")
+        } else {
+          log.info("Connected to ${event.info.username} on ${event.address}")
+          peers[event.info.username] = async.result()
         }
+      }
+    }
+  }
+
+  fun search(query: String, timeout: Long): Future<SearchResultsAggregated> {
+    val token = nextBytes(4).let(bytesToHex)
+    log.info("Search request $query with timeout $timeout and token $token")
+    vertx.eventBus().emit(SearchRequested(query, token))
+
+    searchResults[token] = mutableListOf()
+    vertx.eventBus().on(SearchResponded::class) { event ->
+      searchResults[token]!!.add(event)
     }
 
-    fun search(query: String, timeout: Long, callback: (SearchResultsAggregated) -> Unit) {
-        val token = nextBytes(4).let(bytesToHex)
-        log.info("Search request $query with timeout $timeout and token $token")
-        vertx.eventBus().emit(SearchRequested(query, token))
-
-        searchResults[token] = mutableListOf()
-        vertx.eventBus().on(SearchResponded::class) { event ->
-            searchResults[token]!!.add(event)
-        }
-
-        vertx.setTimer(timeout) {
-            callback(SearchResultsAggregated(token, searchResults[token].orEmpty()))
-        }
+    val promise = Promise.promise<SearchResultsAggregated>()
+    vertx.setTimer(timeout) {
+      promise.complete(SearchResultsAggregated(token, searchResults[token].orEmpty()))
     }
+    return promise.future()
+  }
 
-    fun download(file: SharedFile) {
-        val token = nextBytes(4).let(bytesToHex)
-        peers[file.username]!!.transferRequest(token, file.filename)
-    }
+  fun download(file: SharedFile) {
+    val token = nextBytes(4).let(bytesToHex)
+    peers[file.username]!!.transferRequest(token, file.filename)
+  }
 
 }
 
 fun EventBus.emit(event: Event) {
-    publish(event::class.java.simpleName, JsonObject.mapFrom(event))
+  publish(event::class.java.simpleName, JsonObject.mapFrom(event))
 }
 
-fun <T> EventBus.on(clazz: KClass<T>, function: (T) -> Unit) where T: Event  {
-    consumer<JsonObject>(clazz::java.get().simpleName) { message ->
-        function.invoke(message.body().mapTo(clazz::java.get()))
-    }
+fun <T> EventBus.on(clazz: KClass<T>, function: (T) -> Unit) where T : Event {
+  consumer<JsonObject>(clazz::java.get().simpleName) { message ->
+    function.invoke(message.body().mapTo(clazz::java.get()))
+  }
 }
