@@ -24,8 +24,8 @@ internal class AcceptanceTest {
   @Timeout(value = 5, timeUnit = TimeUnit.SECONDS)
   internal fun search(test: VertxTestContext) {
     slsk.search("leatherface", 2000)
-      .onSuccess { results ->
-        assertThat(results.flatMap(SearchResponded::files)).isNotEmpty
+      .onSuccess { result ->
+        assertThat(result.results.flatMap(SearchResponded::files)).isNotEmpty
         test.completeNow()
       }
       .onFailure(test::failNow)

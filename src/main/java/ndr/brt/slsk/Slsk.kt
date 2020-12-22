@@ -69,14 +69,15 @@ class Slsk(
       .onFailure { cause -> start.fail(cause) }
 
     vertx.eventBus().on(ConnectToPeer::class) { event ->
-      PeerListener(event.address, event.info, vertx.createNetClient(), vertx.eventBus()) { async ->
-        if (async.failed()) {
-          log.error("Error connecting to ${event.info.username} on ${event.address}: ${async.cause()}")
-        } else {
+      val listener = PeerListener(event.address, event.info, vertx.createNetClient(), vertx.eventBus())
+      listener.connect()
+        .onSuccess {
           log.info("Connected to ${event.info.username} on ${event.address}")
-          peers[event.info.username] = async.result()
+          peers[event.info.username] = listener
         }
-      }
+        .onFailure { cause ->
+          log.error("Error connecting to ${event.info.username} on ${event.address}.", cause)
+        }
     }
   }
 
@@ -104,12 +105,13 @@ class Slsk(
 
 }
 
-fun EventBus.emit(event: Event) {
-  publish(event::class.java.simpleName, JsonObject.mapFrom(event))
+fun EventBus.emit(event: Event): EventBus {
+  return publish(event::class.java.simpleName, JsonObject.mapFrom(event))
 }
 
-fun <T> EventBus.on(clazz: KClass<T>, function: (T) -> Unit) where T : Event {
+fun <T: Event> EventBus.on(clazz: KClass<T>, function: (T) -> Unit): EventBus {
   consumer<JsonObject>(clazz::java.get().simpleName) { message ->
     function.invoke(message.body().mapTo(clazz::java.get()))
   }
+  return this
 }
