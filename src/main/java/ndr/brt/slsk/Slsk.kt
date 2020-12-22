@@ -1,11 +1,13 @@
 package ndr.brt.slsk
 
 import bytesToHex
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.vertx.core.AbstractVerticle
-import io.vertx.core.Future
+import io.vertx.core.Promise
 import io.vertx.core.Vertx
 import io.vertx.core.eventbus.EventBus
 import io.vertx.core.json.JsonObject
+import io.vertx.core.json.jackson.DatabindCodec
 import ndr.brt.slsk.peer.PeerListener
 import ndr.brt.slsk.peer.SharedFile
 import ndr.brt.slsk.server.ServerListener
@@ -41,21 +43,22 @@ class Slsk(private val username: String, private val password: String, private v
     private val searchResults: MutableMap<String, MutableList<SearchResponded>> = mutableMapOf()
     private val peers: MutableMap<String, PeerListener> = mutableMapOf()
 
-    override fun start(startFuture: Future<Void>) {
-        ServerListener(serverHost, serverPort, vertx.createNetClient(), vertx.eventBus()) { async ->
-            if (async.failed()) startFuture.fail(async.cause())
+    override fun start(start: Promise<Void>) {
+      DatabindCodec.mapper().registerModule(KotlinModule())
 
-            val server = async.result()
-            server.login(username, password) { login ->
-                if (login.succeed) {
-                    log.info("Login succedeed: ${login.message}")
-                    startFuture.complete()
-                } else {
-                    log.info("Login failed: ${login.message}")
-                    startFuture.fail(login.message)
-                }
-            }
+      val serverListener = ServerListener(serverHost, serverPort, vertx.createNetClient(), vertx.eventBus())
+      serverListener.connect()
+        .compose { server -> server.login(username, password) }
+        .onSuccess { login ->
+          if (login.succeed) {
+            log.info("Login succedeed: ${login.message}")
+            start.complete()
+          } else {
+            log.error("Login failed: ${login.message}")
+            start.fail(login.message)
+          }
         }
+        .onFailure { cause -> start.fail(cause) }
 
         vertx.eventBus().on(ConnectToPeer::class) { event ->
             PeerListener(event.address, event.info, vertx.createNetClient(), vertx.eventBus()) { async ->

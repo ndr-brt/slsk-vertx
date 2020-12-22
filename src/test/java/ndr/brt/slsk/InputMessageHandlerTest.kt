@@ -2,7 +2,7 @@ package ndr.brt.slsk
 
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
-import io.vertx.core.buffer.Buffer.*
+import io.vertx.core.buffer.Buffer.buffer
 import io.vertx.junit5.Timeout
 import io.vertx.junit5.VertxExtension
 import io.vertx.junit5.VertxTestContext
@@ -13,62 +13,62 @@ import org.junit.jupiter.api.extension.ExtendWith
 import java.util.concurrent.TimeUnit
 
 @ExtendWith(VertxExtension::class)
-internal class InputMessageHandlerTest {
+class InputMessageHandlerTest {
 
-    @Test
-    @Timeout(value = 1, timeUnit = TimeUnit.SECONDS)
-    internal fun handle_small_message(vertx: Vertx, context: VertxTestContext) {
-        val handler = InputMessageHandler("publish-address", vertx.eventBus())
-        val message = buffer()
-                .appendIntLE(17)
-                .appendIntLE(1)
-                .appendByte(1)
-                .appendStringWithLength("12345678")
+  @Test
+  @Timeout(value = 1, timeUnit = TimeUnit.SECONDS)
+  internal fun handle_small_message(vertx: Vertx, context: VertxTestContext) {
+    val handler = InputMessageHandler("publish-address", vertx.eventBus())
+    val message = buffer()
+      .appendIntLE(17)
+      .appendIntLE(1)
+      .appendByte(1)
+      .appendStringWithLength("12345678")
 
-        vertx.eventBus().consumer<Buffer>("publish-address") {
-            assert(it.body() == message)
-            context.completeNow()
-        }
-
-        handler.handle(message)
+    vertx.eventBus().consumer<Buffer>("publish-address") {
+      assert(it.body() == message)
+      context.completeNow()
     }
 
-    @Test
-    @Timeout(value = 1, timeUnit = TimeUnit.SECONDS)
-    internal fun handle_message_splitted_in_two_parts(vertx: Vertx, context: VertxTestContext) {
-        val handler = InputMessageHandler("publish-address", vertx.eventBus())
-        val partOne = buffer()
-                .appendIntLE(17)
-                .appendIntLE(1)
-                .appendByte(1)
+    handler.handle(message)
+  }
 
-        val partTwo = buffer()
-                .appendStringWithLength("12345678")
+  @Test
+  @Timeout(value = 1, timeUnit = TimeUnit.SECONDS)
+  internal fun handle_message_splitted_in_two_parts(vertx: Vertx, context: VertxTestContext) {
+    val handler = InputMessageHandler("publish-address", vertx.eventBus())
+    val partOne = buffer()
+      .appendIntLE(17)
+      .appendIntLE(1)
+      .appendByte(1)
 
-        vertx.eventBus().consumer<Buffer>("publish-address") {
-            assert(it.body() == partOne.appendBuffer(partTwo))
-            context.completeNow()
-        }
+    val partTwo = buffer()
+      .appendStringWithLength("12345678")
 
-        handler.handle(partOne)
-        handler.handle(partTwo)
+    vertx.eventBus().consumer<Buffer>("publish-address") {
+      assert(it.body() == partOne.appendBuffer(partTwo))
+      context.completeNow()
     }
 
-    @Test
-    @Timeout(value = 1, timeUnit = TimeUnit.SECONDS)
-    internal fun handle_two_messages_in_one_packet(vertx: Vertx, context: VertxTestContext) {
-        val handler = InputMessageHandler("publish-address", vertx.eventBus())
-        val message = buffer()
-                .appendIntLE(17)
-                .appendIntLE(1)
-                .appendByte(1)
-                .appendStringWithLength("12345678")
+    handler.handle(partOne)
+    handler.handle(partTwo)
+  }
 
-        vertx.eventBus().consumer<Buffer>("publish-address") {
-            assert(it.body() == message)
-            context.completeNow()
-        }
+  @Test
+  @Timeout(value = 1, timeUnit = TimeUnit.SECONDS)
+  internal fun handle_two_messages_in_one_packet(vertx: Vertx, context: VertxTestContext) {
+    val handler = InputMessageHandler("publish-address", vertx.eventBus())
+    val message = buffer()
+      .appendIntLE(17)
+      .appendIntLE(1)
+      .appendByte(1)
+      .appendStringWithLength("12345678")
 
-        handler.handle(Buffer.buffer().appendBuffer(message).appendBuffer(message))
+    vertx.eventBus().consumer<Buffer>("publish-address") {
+      assert(it.body() == message)
+      context.completeNow()
     }
+
+    handler.handle(buffer().appendBuffer(message).appendBuffer(message))
+  }
 }
