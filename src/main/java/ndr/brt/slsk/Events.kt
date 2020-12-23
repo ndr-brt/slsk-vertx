@@ -10,7 +10,6 @@ data class LoginResponded(val succeed: Boolean = false, val message: String = ""
 
 data class SearchRequested(val query: String = "", val token: String = "00000000"): Event
 data class SearchResponded(val token: String = "", val files: List<SharedFile> = emptyList(), val slots: Boolean = false): Event
-data class SearchResultsAggregated(val token: String = "", val results: List<SearchResponded> = emptyList()): Event
 
 data class ConnectToPeer(val address: Address = Address(), val info: PeerInfo = PeerInfo()): Event
 

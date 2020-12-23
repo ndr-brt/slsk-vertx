@@ -25,20 +25,22 @@ internal class AcceptanceTest {
   internal fun search(test: VertxTestContext) {
     slsk.search("leatherface", 2000)
       .onSuccess { result ->
-        assertThat(result.results.flatMap(SearchResponded::files)).isNotEmpty
+        assertThat(result.files()).isNotEmpty
         test.completeNow()
       }
       .onFailure(test::failNow)
   }
-/*
-  @Test
-  @Timeout(value = 5, timeUnit = TimeUnit.SECONDS)
-  internal fun download(context: VertxTestContext) {
-    slsk.search("leatherface", 2000) {
-      slsk.download(it.results[0])
+//
+//  @Test
+//  @Timeout(value = 5, timeUnit = TimeUnit.SECONDS)
+//  internal fun download(test: VertxTestContext) {
+//    slsk.search("leatherface", 2000)
+//      .map { aggregated -> aggregated.results.flatMap { it.files }}
+//      .compose { files -> slsk.download(files[0]) }
+//      .onSuccess {
+//        test.completeNow()
+//      }
+//      .onFailure(test::failNow)
+//  }
 
-      context.completeNow()
-    }
-  }
-*/
 }

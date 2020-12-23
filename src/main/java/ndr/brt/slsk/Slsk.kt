@@ -9,6 +9,7 @@ import io.vertx.core.Vertx
 import io.vertx.core.eventbus.EventBus
 import io.vertx.core.json.JsonObject
 import io.vertx.core.json.jackson.DatabindCodec
+import ndr.brt.slsk.model.SearchResult
 import ndr.brt.slsk.peer.PeerListener
 import ndr.brt.slsk.peer.SharedFile
 import ndr.brt.slsk.server.ServerListener
@@ -81,7 +82,7 @@ class Slsk(
     }
   }
 
-  fun search(query: String, timeout: Long): Future<SearchResultsAggregated> {
+  fun search(query: String, timeout: Long): Future<SearchResult> {
     val token = nextBytes(4).let(bytesToHex)
     log.info("Search request $query with timeout $timeout and token $token")
     vertx.eventBus().emit(SearchRequested(query, token))
@@ -91,16 +92,19 @@ class Slsk(
       searchResults[token]!!.add(event)
     }
 
-    val promise = Promise.promise<SearchResultsAggregated>()
+    val promise = Promise.promise<SearchResult>()
     vertx.setTimer(timeout) {
-      promise.complete(SearchResultsAggregated(token, searchResults[token].orEmpty()))
+      promise.complete(SearchResult(token, searchResults[token].orEmpty()))
     }
     return promise.future()
   }
 
-  fun download(file: SharedFile) {
+  fun download(file: SharedFile): Future<Unit> {
     val token = nextBytes(4).let(bytesToHex)
+    val promise = Promise.promise<Unit>()
+
     peers[file.username]!!.transferRequest(token, file.filename)
+    return promise.future()
   }
 
 }

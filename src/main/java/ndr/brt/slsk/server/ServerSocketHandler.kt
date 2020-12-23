@@ -18,19 +18,18 @@ class ServerSocketHandler(private val eventBus: EventBus) : Handler<NetSocket> {
     socket.handler(InputMessageHandler("ServerInputMessage", eventBus))
 
     eventBus.consumer<Buffer>("ServerInputMessage") { message ->
-      ProtocolBuffer(message.body()).let {
-        when (it.code()) {
-          1 -> login
-          18 -> connectToPeer
-          22 -> privateMessage
-          64 -> numberOfRooms
-          69 -> privilegedUsers
-          83 -> parentMinSpeed
-          84 -> parentSpeedRatio
-          104 -> wishListInterval
-          else -> unknownMessage
-        }.invoke(it)
-      }
+      val protocolBuffer = ProtocolBuffer(message.body())
+      when (protocolBuffer.code()) {
+        1 -> login
+        18 -> connectToPeer
+        22 -> privateMessage
+        64 -> numberOfRooms
+        69 -> privilegedUsers
+        83 -> parentMinSpeed
+        84 -> parentSpeedRatio
+        104 -> wishListInterval
+        else -> unknownMessage
+      }.invoke(protocolBuffer)
     }
 
     eventBus.on(LoginRequested::class) { event ->
