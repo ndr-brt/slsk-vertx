@@ -7,6 +7,7 @@ import io.vertx.core.Future
 import io.vertx.core.Promise
 import io.vertx.core.Vertx
 import io.vertx.core.eventbus.EventBus
+import io.vertx.core.eventbus.MessageConsumer
 import io.vertx.core.json.JsonObject
 import io.vertx.core.json.jackson.DatabindCodec
 import ndr.brt.slsk.model.SearchResult
@@ -24,9 +25,7 @@ fun main() {
   vertx.deployVerticle(slsk)
     .compose { slsk.search("leatherface", 3000) }
     .onSuccess { event ->
-      event.results
-        .filter(SearchResponded::slots)
-        .flatMap(SearchResponded::files)
+      event.filesWithSlot()
         .firstOrNull()
         .let { file ->
           if (file != null) {
@@ -103,8 +102,19 @@ class Slsk(
     val token = nextBytes(4).let(bytesToHex)
     val promise = Promise.promise<Unit>()
 
+    val consumer = vertx.eventBus().on(DownloadNotAllowed::class) { event ->
+      if (token == event.token) {
+        if (event.reason.equals("Queued", true)) {
+          // TODO: chessifa? wait for a message about?
+        } else {
+          promise.fail(event.reason)
+        }
+      }
+    }
+
     peers[file.username]!!.transferRequest(token, file.filename)
     return promise.future()
+      .onComplete { consumer.unregister() }
   }
 
 }
@@ -113,9 +123,8 @@ fun EventBus.emit(event: Event): EventBus {
   return publish(event::class.java.simpleName, JsonObject.mapFrom(event))
 }
 
-fun <T: Event> EventBus.on(clazz: KClass<T>, function: (T) -> Unit): EventBus {
-  consumer<JsonObject>(clazz::java.get().simpleName) { message ->
+fun <T: Event> EventBus.on(clazz: KClass<T>, function: (T) -> Unit): MessageConsumer<*> {
+  return consumer<JsonObject>(clazz::java.get().simpleName) { message ->
     function.invoke(message.body().mapTo(clazz::java.get()))
   }
-  return this
 }

@@ -32,9 +32,8 @@ class ServerListener(
   fun login(username: String, password: String): Future<LoginResponded> {
     log.info("Login with username {}", username)
     val promise = Promise.promise<LoginResponded>()
-    eventBus
-      .on(LoginResponded::class) { loginResponded -> promise.complete(loginResponded) }
-      .emit(LoginRequested(username, password))
+    eventBus.on(LoginResponded::class) { loginResponded -> promise.complete(loginResponded) }
+    eventBus.emit(LoginRequested(username, password))
     return promise.future()
   }
 

@@ -90,9 +90,11 @@ class PeerListener(
       val allowed = it.readBoolean()
       if (allowed) {
         log.info("${info.username}: Download allowed")
+        eventBus.emit(DownloadAllowed(token))
       } else {
         val reason = it.readString()
         log.warn("${info.username}: Download not allowed because $reason")
+        eventBus.emit(DownloadNotAllowed(token, reason))
       }
     }
 
@@ -120,11 +122,11 @@ class PeerListener(
         files.add(SharedFile(username, filename, size))
       }
       val slots = unzip.readBoolean()
-      unzip.readInt()
+      val uploadSpeed = unzip.readInt()
       unzip.readInt()
       log.info("Recv FileSearchResult da $username")
       if (files.size > 0) {
-        eventBus.emit(SearchResponded(token, files, slots))
+        eventBus.emit(SearchResponded(token, files, slots, uploadSpeed))
       }
     }
 

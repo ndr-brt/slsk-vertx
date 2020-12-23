@@ -32,10 +32,10 @@ internal class AcceptanceTest {
   }
 //
 //  @Test
-//  @Timeout(value = 5, timeUnit = TimeUnit.SECONDS)
+//  @Timeout(value = 60, timeUnit = TimeUnit.SECONDS)
 //  internal fun download(test: VertxTestContext) {
 //    slsk.search("leatherface", 2000)
-//      .map { aggregated -> aggregated.results.flatMap { it.files }}
+//      .map { aggregated -> aggregated.filesWithSlot() }
 //      .compose { files -> slsk.download(files[0]) }
 //      .onSuccess {
 //        test.completeNow()
