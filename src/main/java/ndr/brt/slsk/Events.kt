@@ -20,7 +20,8 @@ data class SearchResponded(
 data class ConnectToPeer(val address: Address = Address(), val info: PeerInfo = PeerInfo()): Event
 
 data class TransferRequested(val username: String = "", val token: String = "", val filename: String = ""): Event
-data class TransferResponded(val username: String = "", val token: String = ""): Event
+data class UploadRequested(val username: String = "", val token: String = "", val filename: String = ""): Event
+data class DownloadRequested(val username: String = "", val token: String = "", val filename: String = ""): Event
 
 data class DownloadAllowed(val token: String = ""): Event
 data class DownloadNotAllowed(val token: String = "", val reason: String): Event

@@ -1,6 +1,5 @@
 package ndr.brt.slsk.peer
 
-import io.vertx.core.AsyncResult
 import io.vertx.core.Future
 import io.vertx.core.Handler
 import io.vertx.core.buffer.Buffer
@@ -11,6 +10,9 @@ import ndr.brt.slsk.*
 import ndr.brt.slsk.protocol.InputMessageHandler
 import ndr.brt.slsk.protocol.Protocol
 import ndr.brt.slsk.protocol.ProtocolBuffer
+import ndr.brt.slsk.protocol.TransferDirection
+import ndr.brt.slsk.protocol.TransferDirection.Download
+import ndr.brt.slsk.protocol.TransferDirection.Upload
 import org.slf4j.LoggerFactory
 
 class PeerListener(
@@ -60,9 +62,16 @@ class PeerListener(
         }
       }
 
-      eventBus.on(TransferResponded::class) { event ->
+      eventBus.on(UploadRequested::class) { event ->
         if (event.username == info.username) {
           log.info("send TransferResponse to ${info.username}")
+          socket.write(Protocol.ToPeer.TransferResponse(event.token).toChannel())
+        }
+      }
+
+      eventBus.on(DownloadRequested::class) { event ->
+        if (event.username == info.username) {
+          log.warn("download requested by ${info.username}. NOT YET IMPLEMENTED")
           socket.write(Protocol.ToPeer.TransferResponse(event.token).toChannel())
         }
       }
@@ -82,7 +91,10 @@ class PeerListener(
       val token = it.readToken()
       val filename = it.readString()
       log.info("${info.username}: TransferRequest $direction for $filename")
-      eventBus.emit(TransferResponded(info.username, token))
+      when (direction) {
+        Upload -> eventBus.emit(UploadRequested(info.username, token, filename))
+        Download -> eventBus.emit(DownloadRequested(info.username, token, filename))
+      }
     }
 
     private val transferResponse: (ProtocolBuffer) -> Unit = {
