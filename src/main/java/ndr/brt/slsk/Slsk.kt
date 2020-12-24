@@ -15,6 +15,8 @@ import ndr.brt.slsk.peer.PeerListener
 import ndr.brt.slsk.peer.SharedFile
 import ndr.brt.slsk.server.ServerListener
 import org.slf4j.LoggerFactory
+import java.net.SocketException
+import java.nio.channels.ClosedChannelException
 import kotlin.random.Random.Default.nextBytes
 import kotlin.reflect.KClass
 
@@ -76,7 +78,11 @@ class Slsk(
           peers[event.info.username] = listener
         }
         .onFailure { cause ->
-          log.error("Error connecting to ${event.info.username} on ${event.address}.", cause)
+          when (cause) {
+            is SocketException -> log.error("Error connecting to ${event.info.username} on ${event.address}: ${cause.localizedMessage}")
+            is ClosedChannelException -> log.error("Closing connection to ${event.info.username} on ${event.address}")
+            else -> log.error("Error connecting to ${event.info.username} on ${event.address}.", cause)
+          }
         }
     }
   }
