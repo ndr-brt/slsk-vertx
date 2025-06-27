@@ -11,7 +11,7 @@
   <properties>
     <assertj.version>3.12.2</assertj.version>
     <awaitility.version>3.1.6</awaitility.version>
-    <jackson.version>2.12.0</jackson.version>
+    <jackson.version>2.15.0</jackson.version>
     <junit.version>5.5.0-M1</junit.version>
     <kotlin.version>1.4.20</kotlin.version>
     <kotlin-jvm-target.version>12</kotlin-jvm-target.version>
