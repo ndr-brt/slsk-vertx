@@ -9,7 +9,7 @@
   <version>1.0-SNAPSHOT</version>
 
   <properties>
-    <assertj.version>3.12.2</assertj.version>
+    <assertj.version>3.27.7</assertj.version>
     <awaitility.version>3.1.6</awaitility.version>
     <jackson.version>2.15.0</jackson.version>
     <junit.version>5.5.0-M1</junit.version>
